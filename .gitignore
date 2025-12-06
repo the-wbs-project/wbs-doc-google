@@ -1,0 +1,22 @@
+# System files
+.DS_Store
+
+# Node
+node_modules/
+dist/
+.wrangler/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Environment / Secrets
+.dev.vars
+.env
+
+# Cloudflare
+.cargo-ok

@@ -1,0 +1,67 @@
+{
+    "name": "wbs-ingestion",
+    "main": "src/worker/index.ts",
+    "account_id": "004dc1af737b22a8aa83b3550fa9b9d3",
+    "compatibility_date": "2025-07-12",
+    "compatibility_flags": [
+        "nodejs_compat_v2"
+    ],
+    "observability": {
+        "enabled": true
+    },
+    "r2_buckets": [
+        {
+            "binding": "FILES_BUCKET",
+            "bucket_name": "wbs-files",
+            "remote": true
+        }
+    ],
+    "workflows": [
+        {
+            "binding": "INGESTION_WORKFLOW",
+            "name": "wbs-workflow",
+            "class_name": "WbsWorkflow"
+        }
+    ],
+    "durable_objects": {
+        "bindings": [
+            {
+                "name": "MPP_SERVICE_DO",
+                "class_name": "MppService"
+            },
+            {
+                "name": "PDF_SERVICE_DO",
+                "class_name": "PdfService"
+            }
+        ]
+    },
+    "migrations": [
+        {
+            "tag": "v1",
+            "new_sqlite_classes": [
+                "MppService",
+                "PdfService"
+            ]
+        }
+    ],
+    "containers": [
+        {
+            "max_instances": 3,
+            "image": "./containers/java-mpp/Dockerfile",
+            "class_name": "MppService"
+        },
+        {
+            "max_instances": 3,
+            "image": "./containers/python-pdf/Dockerfile",
+            "class_name": "PdfService"
+        }
+    ],
+    "assets": {
+        "directory": "./assets",
+        "binding": "ASSETS"
+    },
+    "vars": {
+        "PROMPTHUB_PROJECT_ID": "REPLACE_WITH_PROJECT_ID",
+        "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/004dc1af737b22a8aa83b3550fa9b9d3/pm-empower/google-ai-studio"
+    }
+}

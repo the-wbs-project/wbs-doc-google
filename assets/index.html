@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WBS Ingestion Tester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        button { padding: 10px 20px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        #output { margin-top: 20px; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 4px; border: 1px solid #ddd; display: none; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>WBS Ingestion Tester</h1>
+    <div class="container">
+        <div class="form-group">
+            <label for="fileInput">Select WBS File (.mpp or .pdf)</label>
+            <input type="file" id="fileInput" accept=".mpp,.pdf">
+        </div>
+        <button onclick="uploadFile()">Upload & Process</button>
+        
+        <div id="status"></div>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const statusDiv = document.getElementById('status');
+            const outputDiv = document.getElementById('output');
+
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            statusDiv.textContent = 'Uploading...';
+            statusDiv.className = 'loading';
+            outputDiv.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                statusDiv.textContent = 'Upload successful! Workflow triggered.';
+                statusDiv.className = '';
+                
+                outputDiv.textContent = JSON.stringify(result, null, 2);
+                outputDiv.style.display = 'block';
+
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = '';
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
