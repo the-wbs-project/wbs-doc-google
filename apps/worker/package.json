@@ -1,0 +1,28 @@
+{
+  "name": "wbs-worker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240405.0",
+    "typescript": "^5.0.4",
+    "vitest": "^1.5.0",
+    "wrangler": "^4.53.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@cloudflare/containers": "^0.0.30",
+    "@google/genai": "^1.31.0",
+    "hono": "^4.10.7",
+    "mongodb": "^6.5.0",
+    "nanoid": "^5.1.6",
+    "openai": "^6.10.0",
+    "zod": "^4.1.13"
+  }
+}

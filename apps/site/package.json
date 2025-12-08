@@ -1,0 +1,66 @@
+{
+  "name": "wbs-frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "dev": "ng serve --configuration development",
+    "test": "ng test"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {
+    "@angular/common": "^21.0.0",
+    "@angular/compiler": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0",
+    "@angular/platform-browser": "^21.0.0",
+    "@angular/router": "^21.0.0",
+    "@fortawesome/angular-fontawesome": "^2.0.1",
+    "@fortawesome/fontawesome-svg-core": "^7.0.0",
+    "@fortawesome/free-brands-svg-icons": "^7.0.0",
+    "@fortawesome/pro-duotone-svg-icons": "^7.0.0",
+    "@fortawesome/pro-regular-svg-icons": "^7.0.0",
+    "@fortawesome/pro-solid-svg-icons": "^7.0.0",
+    "@syncfusion/ej2-angular-base": "^30.2.4",
+    "@syncfusion/ej2-angular-buttons": "^30.2.4",
+    "@syncfusion/ej2-angular-calendars": "^30.2.4",
+    "@syncfusion/ej2-angular-charts": "^30.2.4",
+    "@syncfusion/ej2-angular-dropdowns": "^30.2.4",
+    "@syncfusion/ej2-angular-inputs": "^30.2.4",
+    "@syncfusion/ej2-angular-interactive-chat": "^30.2.4",
+    "@syncfusion/ej2-angular-layouts": "^30.2.4",
+    "@syncfusion/ej2-angular-navigations": "^30.2.4",
+    "@syncfusion/ej2-angular-notifications": "^30.2.4",
+    "@syncfusion/ej2-angular-popups": "^30.2.4",
+    "@syncfusion/ej2-angular-splitbuttons": "^30.2.4",
+    "@syncfusion/ej2-base": "^30.2.4",
+    "rxjs": "~7.8.0",
+    "tabulator-tables": "^6.3.1",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.0.2",
+    "@angular/cli": "^21.0.2",
+    "@angular/compiler-cli": "^21.0.0",
+    "@tailwindcss/postcss": "^4.1.12",
+    "jsdom": "^27.1.0",
+    "tailwindcss": "4.1.17",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}

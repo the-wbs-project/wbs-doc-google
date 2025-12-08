@@ -57,7 +57,7 @@
         }
     ],
     "assets": {
-        "directory": "./assets",
+        "directory": "../site/dist/wbs-frontend/browser",
         "binding": "ASSETS"
     },
     "vars": {

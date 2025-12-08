@@ -1,28 +1,24 @@
 {
-  "name": "wbs-ingestion",
-  "version": "0.0.1",
+  "name": "wbs-ingestion-monorepo",
+  "version": "0.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "test": "vitest",
-    "lint": "eslint src/**/*.ts"
+    "build:all": "turbo run build",
+    "dev:all": "turbo run dev",
+    "lint:all": "turbo run lint",
+    "test:all": "turbo run test",
+    "sync": "cd apps/site && rm -rf .angular && npx syncfusion-license activate"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240405.0",
-    "typescript": "^5.0.4",
-    "vitest": "^1.5.0",
-    "wrangler": "^4.53.0"
+    "@biomejs/biome": "^2.2.4",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
-    "@cloudflare/containers": "^0.0.30",
-    "@google/genai": "^1.31.0",
-    "hono": "^4.10.7",
-    "mongodb": "^6.5.0",
-    "nanoid": "^5.1.6",
-    "openai": "^6.10.0",
-    "zod": "^4.1.13"
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

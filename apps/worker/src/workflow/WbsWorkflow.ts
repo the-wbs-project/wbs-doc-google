@@ -3,6 +3,7 @@ import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:work
 import { NonRetryableError } from 'cloudflare:workflows';
 import { AIService } from '../ai';
 import { ModelResults } from '../models/model-results';
+import { ComparisonResult } from '../models/task-comparison';
 import { getMongoClient, getDb } from '../utils/mongo';
 import { MppService } from '../worker/containers';
 
@@ -54,6 +55,7 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
             const fileExtension = fileKey.split('.').pop()?.toLowerCase();
 
             let results: ModelResults | ModelResults[] = [];
+            let comparison: ComparisonResult | undefined;
 
             if (fileExtension === 'mpp') {
                 results = await step.do('parse-mpp', async () => {
@@ -111,6 +113,12 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                 });
             }
 
+            if (Array.isArray(results) && results.length > 1) {
+                comparison = await step.do('compare-results', async () => {
+                    return await aiService.gemini.compareResults(results as ModelResults[]);
+                });
+            }
+
             // Step 4: Reconstruct Tree
             /*const tree = reconstructTree(flatTasks);
             const dbRows = flattenTreeForDb(tree);
@@ -125,7 +133,7 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                 }
             });*/
 
-            return { success: true, results: results };
+            return { success: true, results: results, comparison };
 
         } catch (error) {
             console.error('Workflow failed unrecoverably:', error);
