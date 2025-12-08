@@ -92,9 +92,15 @@ importers:
       '@syncfusion/ej2-angular-splitbuttons':
         specifier: ^30.2.4
         version: 30.2.4
+      '@syncfusion/ej2-angular-treegrid':
+        specifier: ^30.2.4
+        version: 30.2.4
       '@syncfusion/ej2-base':
         specifier: ^30.2.4
         version: 30.2.6
+      '@wbs/domains':
+        specifier: workspace:*
+        version: link:../../packages/domains
       rxjs:
         specifier: ~7.8.0
         version: 7.8.2
@@ -141,6 +147,9 @@ importers:
       '@google/genai':
         specifier: ^1.31.0
         version: 1.31.0(@modelcontextprotocol/sdk@1.24.0(zod@4.1.13))
+      '@wbs/domains':
+        specifier: workspace:*
+        version: link:../../packages/domains
       hono:
         specifier: ^4.10.7
         version: 4.10.7
@@ -169,6 +178,12 @@ importers:
       wrangler:
         specifier: ^4.53.0
         version: 4.53.0(@cloudflare/workers-types@4.20251205.0)
+
+  packages/domains:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.4
+        version: 5.9.3
 
 packages:
 
@@ -2165,6 +2180,9 @@ packages:
   '@syncfusion/ej2-angular-splitbuttons@30.2.4':
     resolution: {integrity: sha512-BL4l15bot7lUqxdg6Kx6wfRaKGJdLHiH1vHBiVXK2c6HLBvDeR+Wy0WBL83qR3npLXvHHLgiSVg1AWOPzpmluw==}
 
+  '@syncfusion/ej2-angular-treegrid@30.2.4':
+    resolution: {integrity: sha512-faNXn9U5qcJ0ncqxrK4rCyYjPmcfNN2TRAlBwCyIdmc75gbyVf+Wg0fi/SgoOFMIruQ3JUyP63+UPhZClkWh9A==}
+
   '@syncfusion/ej2-base@30.2.6':
     resolution: {integrity: sha512-RC7yA4nK/1CvkQQkUnYbvsFUFcuWkbSxhyVgn4ymNCAylRARFerdO6epTJAn204+vhmzoS34q+4EdeWwtg0/PA==}
     hasBin: true
@@ -2192,6 +2210,9 @@ packages:
 
   '@syncfusion/ej2-file-utils@30.2.4':
     resolution: {integrity: sha512-rrMlfJdXIF069P1kSf69Cuv7oNe6jXknUUxvDaej2+5ZgS79I181ugAHBkvyIUzpq4R0AobJUKPRIAv2XtUo7g==}
+
+  '@syncfusion/ej2-grids@30.2.6':
+    resolution: {integrity: sha512-KVTM7xytsp60/fvQdeK37vM3rTQqsV5TTBvpeMKHQmUNhs3qfEGYA0bYGPgITqJcjzVkiVSDOyAvKC+Ne1AgjA==}
 
   '@syncfusion/ej2-icons@30.2.4':
     resolution: {integrity: sha512-zKJaCs9AhPT/xOVvjlSAQCCcQX9P+P/ajVd2Xe2UxeSuJpB8K9D1+4MHXe6lZOdY/hOyNWocpZc60UmcaAcR/Q==}
@@ -2225,6 +2246,9 @@ packages:
 
   '@syncfusion/ej2-svg-base@30.2.4':
     resolution: {integrity: sha512-Y+dPKuU5O61ZXNvm6ySvLRRGG4tCr5KjY7+fD0QBboTxGJqwzSM4PVl4DgKXDmggQe42ioRrNmejig2JQny1Sg==}
+
+  '@syncfusion/ej2-treegrid@30.2.4':
+    resolution: {integrity: sha512-UbhFyJhPTebqOumLTWeIlChdmpQ1pWCJ0mZa+UxkXNPUMH178NtKdtLInMC7MflfDVXng1AlNQPL64Gj9V69qQ==}
 
   '@tailwindcss/node@4.1.17':
     resolution: {integrity: sha512-csIkHIgLb3JisEFQ0vxr2Y57GUNYh447C8xzwj89U/8fdW8LhProdxvnVH6U8M2Y73QKiTIH+LWbK3V2BBZsAg==}
@@ -6053,6 +6077,12 @@ snapshots:
       '@syncfusion/ej2-base': 30.2.6
       '@syncfusion/ej2-splitbuttons': 30.2.4
 
+  '@syncfusion/ej2-angular-treegrid@30.2.4':
+    dependencies:
+      '@syncfusion/ej2-angular-base': 30.2.4
+      '@syncfusion/ej2-base': 30.2.6
+      '@syncfusion/ej2-treegrid': 30.2.4
+
   '@syncfusion/ej2-base@30.2.6':
     dependencies:
       '@syncfusion/ej2-icons': 30.2.4
@@ -6103,6 +6133,24 @@ snapshots:
       '@syncfusion/ej2-compression': 30.2.4
 
   '@syncfusion/ej2-file-utils@30.2.4': {}
+
+  '@syncfusion/ej2-grids@30.2.6':
+    dependencies:
+      '@syncfusion/ej2-base': 30.2.6
+      '@syncfusion/ej2-buttons': 30.2.4
+      '@syncfusion/ej2-calendars': 30.2.4
+      '@syncfusion/ej2-compression': 30.2.4
+      '@syncfusion/ej2-data': 30.2.4
+      '@syncfusion/ej2-dropdowns': 30.2.6
+      '@syncfusion/ej2-excel-export': 30.2.4
+      '@syncfusion/ej2-file-utils': 30.2.4
+      '@syncfusion/ej2-inputs': 30.2.6
+      '@syncfusion/ej2-lists': 30.2.4
+      '@syncfusion/ej2-navigations': 30.2.7
+      '@syncfusion/ej2-notifications': 30.2.4
+      '@syncfusion/ej2-pdf-export': 30.2.4
+      '@syncfusion/ej2-popups': 30.2.4
+      '@syncfusion/ej2-splitbuttons': 30.2.4
 
   '@syncfusion/ej2-icons@30.2.4': {}
 
@@ -6165,6 +6213,13 @@ snapshots:
   '@syncfusion/ej2-svg-base@30.2.4':
     dependencies:
       '@syncfusion/ej2-base': 30.2.6
+
+  '@syncfusion/ej2-treegrid@30.2.4':
+    dependencies:
+      '@syncfusion/ej2-base': 30.2.6
+      '@syncfusion/ej2-data': 30.2.4
+      '@syncfusion/ej2-grids': 30.2.6
+      '@syncfusion/ej2-popups': 30.2.4
 
   '@tailwindcss/node@4.1.17':
     dependencies:

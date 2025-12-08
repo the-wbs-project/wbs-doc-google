@@ -2,8 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NonRetryableError } from "cloudflare:workflows";
 import { z } from "zod";
 import { IAIProvider } from "./interface";
-import { ModelResults } from "../models/model-results";
-import { ComparisonResult, ComparedTask } from "../models/task-comparison";
+import { ComparisonResult, ComparedTask, ModelResults } from "@wbs/domains";
 
 const TreeTaskSchema = z.object({
     wbsId: z.string(),
