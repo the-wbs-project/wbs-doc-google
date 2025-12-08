@@ -9,6 +9,12 @@
     "observability": {
         "enabled": true
     },
+    "kv_namespaces": [
+        {
+            "binding": "KV_DATA",
+            "id": "123"
+        }
+    ],
     "r2_buckets": [
         {
             "binding": "FILES_BUCKET",
@@ -28,10 +34,6 @@
             {
                 "name": "MPP_SERVICE_DO",
                 "class_name": "MppService"
-            },
-            {
-                "name": "PDF_SERVICE_DO",
-                "class_name": "PdfService"
             }
         ]
     },
@@ -39,9 +41,12 @@
         {
             "tag": "v1",
             "new_sqlite_classes": [
-                "MppService",
-                "PdfService"
+                "MppService"
             ]
+        },
+        {
+            "tag": "v2",
+            "deleted_classes": []
         }
     ],
     "containers": [
@@ -49,11 +54,6 @@
             "max_instances": 3,
             "image": "./containers/java-mpp/Dockerfile",
             "class_name": "MppService"
-        },
-        {
-            "max_instances": 3,
-            "image": "./containers/python-pdf/Dockerfile",
-            "class_name": "PdfService"
         }
     ],
     "assets": {
@@ -62,6 +62,10 @@
     },
     "vars": {
         "PROMPTHUB_PROJECT_ID": "REPLACE_WITH_PROJECT_ID",
-        "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/004dc1af737b22a8aa83b3550fa9b9d3/pm-empower/google-ai-studio"
+        "AI_ANTHROPIC_MODEL": "claude-opus-4-5-20251101",
+        "AI_GOOGLE_MODEL": "gemini-3-pro-preview",
+        "AI_OPENAI_MODEL": "gpt-5.1",
+        "AI_OPENAI_MODELX": "gpt-5-pro",
+        "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/004dc1af737b22a8aa83b3550fa9b9d3/pm-empower"
     }
 }

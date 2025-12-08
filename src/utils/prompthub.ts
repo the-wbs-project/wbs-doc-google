@@ -25,6 +25,9 @@ Example Input:
 ]
 \`\`\`
 
+// Output Schema is now handled by the AI Service's Structured Outputs.
+// Constraints about JSON formatting are also handled by the service.
+
 ## Parsing Rules
 
 ### 1. Hierarchy Detection (CRITICAL)
@@ -45,30 +48,9 @@ For each row, identifying the following fields:
 -   \`finish\`: Finish date (if found).
 -   \`duration\`: Duration string (e.g., "5 days").
 
-## Output Schema
-You must output a JSON object containing a single key \`tasks\`, which is an array of objects.
-
-\`\`\`json
-{
-  "tasks": [
-    {
-      "id": "String (WBS Code)",
-      "name": "String (Task Name)",
-      "indent_level": Integer (1-based index, 1=Root),
-      "start": "String (ISO Date or Original Text)",
-      "finish": "String (ISO Date or Original Text)",
-      "metadata": {
-         "original_x0": Number
-      }
-    }
-  ]
-}
-\`\`\`
-
 ## Constraints
--   **JSON Only**: Do not include markdown formatting or explanations. Output pure JSON.
 -   **No Hallucinations**: If a date or ID is not visible, return \`null\`.
--   **Sort Order**: Preserve the vertical order of tasks as they appear in the document.\`;`
+-   **Sort Order**: Preserve the vertical order of tasks as they appear in the document.`;
 
 export async function fetchSystemPrompt(projectId: string, apiKey: string): Promise<PromptHubMessage[]> {
   // Hardcoded for now as requested

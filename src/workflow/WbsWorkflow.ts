@@ -1,42 +1,62 @@
+import { getRandom } from '@cloudflare/containers';
 import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
-import { fetchSystemPrompt } from '../utils/prompthub';
-import { reconstructTree, flattenTreeForDb, FlatTask } from './treeUtils';
-
+import { AIService } from '../ai';
+import { ModelResults } from '../models/model-results';
 import { getMongoClient, getDb } from '../utils/mongo';
-import { getRandom } from '@cloudflare/containers';
-import { MppService, PdfService } from '../worker';
+import { MppService } from '../worker/containers';
 
 const INSTANCE_COUNT = 3;
 
-interface Env {
-    FILES_BUCKET: R2Bucket;
+interface WfEnv extends Env {
     MPP_SERVICE_DO: DurableObjectNamespace<MppService>;
-    PDF_SERVICE_DO: DurableObjectNamespace<PdfService>;
-    PROMPTHUB_PROJECT_ID: string;
-    PROMPTHUB_API_KEY: string;
-    MONGO_URI: string;
-    AI_GATEWAY_URL: string;
-    AI_GOOGLE_KEY: string;
 }
 
 interface WorkflowParams {
     fileKey: string;
     projectId: string; // The ID of the project in D1
+    fileName: string;
 }
 
-export class WbsWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
+export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
     async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-        const { fileKey, projectId } = event.payload;
+        const { fileKey, projectId, fileName } = event.payload;
+        const client = await getMongoClient(this.env);
+        const db = getDb(client);
+        const aiService = new AIService(this.env);
 
         try {
+            // Step 0: Create Project Record
+            await step.do('create-project', async () => {
+                try {
+                    // specific id, so we use replaceOne with upsert to be safe (idempotent)
+                    // or just insertOne and ignore error if it exists?
+                    // upsert is safer for retries
+
+                    await db.collection('projects').updateOne(
+                        { _id: projectId as any },
+                        {
+                            $setOnInsert: {
+                                _id: projectId as any,
+                                name: fileName,
+                                created_at: new Date()
+                            }
+                        },
+                        { upsert: true }
+                    );
+                } catch (e) {
+                    console.error("Failed to create project record in DB. Check IP Allowlist.", e);
+                    throw new Error(`DB Error (Create Project): ${(e as Error).message}. Ensure 0.0.0.0/0 is whitelisted in Atlas.`);
+                }
+            });
+
             // Step 1: Identify file type
             const fileExtension = fileKey.split('.').pop()?.toLowerCase();
 
-            let flatTasks: FlatTask[] = [];
+            let results: ModelResults | ModelResults[] = [];
 
             if (fileExtension === 'mpp') {
-                flatTasks = await step.do('parse-mpp', async () => {
+                results = await step.do('parse-mpp', async () => {
                     // Generate a presigned URL for the container to download
                     // Note: In a real scenario, we might need to pass the object itself or use a shared secret
                     // For now, let's assume the container can access R2 via a presigned URL we generate here
@@ -69,203 +89,43 @@ export class WbsWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
                         throw new Error(`MPP Service failed: ${response.statusText}`);
                     }
 
-                    return await response.json() as FlatTask[];
+                    return [{ model: 'none', tasks: await response.json() }];
                 });
             } else if (fileExtension === 'pdf') {
-                // Step 1: Extract Text/Layout from PDF (Once)
-                const pdfData = await step.do('extract-pdf-text', async () => {
-                    const fileObj = await this.env.FILES_BUCKET.get(fileKey);
-                    if (!fileObj) throw new Error(`File not found: ${fileKey}`);
-
-                    const formData = new FormData();
-                    formData.append('file', await fileObj.blob(), fileKey.split('/').pop() || 'file.pdf');
-
-                    const containerInstance = await getRandom(this.env.PDF_SERVICE_DO, INSTANCE_COUNT);
-                    // Wait for instance to be ready? getRandom returns a stub.
-
-                    const response = await containerInstance.fetch('http://pdf-service:8000/analyze', {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    console.log("PDF SERVICE RESPONSE: " + response.status);
-
-                    if (!response.ok) {
-                        const txt = await response.text();
-                        throw new Error(`PDF Service failed: ${response.status} ${txt}`);
-                    }
-
-                    const responseData = await response.json() as { results: any[], images_map?: Record<string, string>, debug_logs: string[] };
-                    if (responseData.debug_logs) {
-                        console.log("--------------- PDF CONTAINER LOGS ---------------");
-                        console.log(responseData.debug_logs.join('\n'));
-                        console.log("--------------------------------------------------");
-                    }
-                    return {
-                        results: responseData.results,
-                        images_map: responseData.images_map || {}
-                    };
+                // Step 1: Extract Markdown from PDF via Azure Document Intelligence
+                const markdownContent = await step.do('extract-pdf-azure', async () => {
+                    return await aiService.azure.extractMarkdown(fileKey, fileName);
                 });
 
-                // Group Layout Data by page
-                const pagesMap = new Map<number, any[]>();
-                // Also track which pages have images
-                const imagesMap = pdfData.images_map;
+                // Step 2: Analyze full document with Gemini
+                // We send the markdown content directly.
+                results = await step.do('analyze-document', async () => {
+                    const systemMessage = "You are a project management expert. Extract task hierarchies precisely.";
+                    const userMessage = 'Extract the Work Breakdown Structure (WBS) from the following document content.';
 
-                for (const item of pdfData.results) {
-                    const p = item.page_number;
-                    if (!pagesMap.has(p)) pagesMap.set(p, []);
-                    pagesMap.get(p)?.push(item);
-                }
-
-                // Determine all unique page numbers from both text results and images
-                const textPages = Array.from(pagesMap.keys());
-                const imagePages = Object.keys(imagesMap).map(p => parseInt(p));
-                const allPages = new Set([...textPages, ...imagePages]);
-
-                const pageNumbers = Array.from(allPages).sort((a, b) => a - b);
-
-                console.log("PAGE NUMBERS: " + pageNumbers);
-
-                // Step 2: Analyze pages in batches to control concurrency
-                const BATCH_SIZE = 3; // Low concurrency to prevent "stalled response"
-                const allPageResults: any[] = [];
-
-                // Generate batches
-                const batches: number[][] = [];
-                for (let i = 0; i < pageNumbers.length; i += BATCH_SIZE) {
-                    batches.push(pageNumbers.slice(i, i + BATCH_SIZE));
-                }
-
-                // Fetch prompt once (or per step if needed, but once is cleaner if we assume stability)
-                // Note: In Workflow replay, this might be re-fetched. That is acceptable.
-                const prompt = await fetchSystemPrompt(this.env.PROMPTHUB_PROJECT_ID, this.env.PROMPTHUB_API_KEY);
-                const systemMessage = prompt.find(m => m.role === 'system');
-                const otherMessages = prompt.filter(m => m.role !== 'system');
-
-                for (const [batchIdx, batch] of batches.entries()) {
-                    const batchResults = await step.do(`analyze-batch-${batchIdx}`, async () => {
-                        // Process batch in parallel
-                        const batchPromises = batch.map(async (pageNum) => {
-                            const layoutData = pagesMap.get(pageNum);
-                            const pageImage = imagesMap[String(pageNum)];
-
-                            // Construct Gemini Request
-                            const contents: any[] = otherMessages.map(m => ({
-                                role: m.role === 'assistant' ? 'model' : 'user',
-                                parts: [{ text: m.content }]
-                            }));
-
-                            if (pageImage) {
-                                // Multimodal Request (Image)
-                                console.log(`Sending Page ${pageNum} as IMAGE to Gemini`);
-                                contents.push({
-                                    role: 'user',
-                                    parts: [
-                                        { text: `Here is the image of page ${pageNum} of the PDF. Please extract the WBS tasks from this image.` },
-                                        {
-                                            inlineData: {
-                                                mimeType: "image/jpeg",
-                                                data: pageImage
-                                            }
-                                        }
-                                    ]
-                                });
-                            } else {
-                                // Text-based Request
-                                console.log(`Sending Page ${pageNum} as TEXT to Gemini`);
-                                contents.push({
-                                    role: 'user',
-                                    parts: [{ text: `Here is the PDF layout data for this page (Page ${pageNum}): ${JSON.stringify(layoutData)}` }]
-                                });
-                            }
-
-                            const gatewayUrl = this.env.AI_GATEWAY_URL;
-                            const model = 'gemini-3-pro-preview';
-                            const url = `${gatewayUrl}/v1beta/models/${model}:generateContent`;
-
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'x-goog-api-key': this.env.AI_GOOGLE_KEY
-                                },
-                                body: JSON.stringify({
-                                    contents: contents,
-                                    systemInstruction: systemMessage ? {
-                                        parts: [{ text: systemMessage.content }]
-                                    } : undefined,
-                                    generationConfig: {
-                                        temperature: 0.1,
-                                        topP: 0.95,
-                                        maxOutputTokens: 8192,
-                                        responseMimeType: "application/json"
-                                    }
-                                })
-                            });
-
-                            console.log("GEMINI RESPONSE: " + response.status);
-
-                            if (!response.ok) {
-                                const errText = await response.text();
-                                throw new Error(`Gemini API failed: ${response.status} ${errText}`);
-                            }
-
-                            const geminiData = await response.json() as any;
-
-                            try {
-                                const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-                                if (!rawText) throw new Error("No content in Gemini response");
-                                const parsed = JSON.parse(rawText);
-                                if (Array.isArray(parsed)) {
-                                    return parsed;
-                                } else if (parsed.tasks && Array.isArray(parsed.tasks)) {
-                                    return parsed.tasks;
-                                } else {
-                                    console.error("Unexpected Gemini response structure:", parsed);
-                                    // Try to see if it's wrapped in another key or just return as is if it's single object?
-                                    // For now throw
-                                    throw new Error("Gemini returned invalid structure: expected array or {tasks: []}");
-                                }
-                            } catch (e) {
-                                console.error("Failed to parse Gemini JSON", e);
-                                throw new Error("Invalid JSON returned by Gemini");
-                            }
-                        });
-
-                        return await Promise.all(batchPromises);
-                    });
-                    allPageResults.push(...batchResults);
-                }
-
-                flatTasks = allPageResults.flat();
+                    return await Promise.all([
+                        aiService.gemini.generateContent([userMessage, markdownContent], systemMessage),
+                        aiService.openai.generateContent([userMessage, markdownContent], systemMessage),
+                        aiService.anthropic.generateContent([userMessage, markdownContent], systemMessage)
+                    ]);
+                });
             }
 
             // Step 4: Reconstruct Tree
-            const tree = reconstructTree(flatTasks);
+            /*const tree = reconstructTree(flatTasks);
             const dbRows = flattenTreeForDb(tree);
 
             // Step 5: Persist
             await step.do('persist-db', async () => {
-                const client = await getMongoClient(this.env);
-                const db = getDb(client);
-
-                const docs = dbRows.map(row => ({
-                    _id: row.id,
-                    project_id: projectId,
-                    name: row.name,
-                    indent_level: row.indent_level, // Ensure casing matches what you want in Mongo
-                    parent_id: row.parent_id,
-                    order_index: row.order_index,
-                    metadata: JSON.parse(row.metadata || '{}') // Store as real JSON in Mongo
-                }));
-
-                if (docs.length > 0) {
-                    await db.collection('tasks').insertMany(docs);
+                try {
+                    await saveTasksToDb(this.ctx, db, projectId, dbRows);
+                } catch (e) {
+                    console.error("Failed to persist tasks to DB.", e);
+                    throw new Error(`DB Error (Persist Tasks): ${(e as Error).message}.`);
                 }
-            });
+            });*/
 
-            return { success: true, taskCount: dbRows.length };
+            return { success: true, results: results };
 
         } catch (error) {
             console.error('Workflow failed unrecoverably:', error);

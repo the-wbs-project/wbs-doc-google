@@ -1,59 +1,80 @@
+import { generateId } from "../utils/generate-id";
+
 export interface FlatTask {
     id?: string;
     name: string;
     outlineLevel: number; // 1-based
-    start?: string;
-    finish?: string;
     metadata?: any;
 }
 
 export interface TreeTask extends FlatTask {
-    id: string;
-    parentId: string | null;
+    id: string; // Internal UUID
+    wbsId: string; // "1.1", "1.2.1" etc from parsing
+    parentId: string | null; // Internal UUID of parent
     children: TreeTask[];
     orderIndex: number;
 }
 
 export function reconstructTree(flatTasks: FlatTask[]): TreeTask[] {
     const rootTasks: TreeTask[] = [];
-    const stack: TreeTask[] = []; // Stack to keep track of parents. stack[0] is level 1, stack[1] is level 2...
+    // Map wbsId -> TreeTask to find parents
+    const taskMap = new Map<string, TreeTask>();
+
+    // 1. Create TreeTask instances and map them
+    // We accumulate everything in a temporary list or just iterate the map?
+    // Iterating flatTasks again is safer to preserve order if we just push to roots/children.
+
+    // Let's rewrite step 1 to be robust.
+    const allTreeTasks: TreeTask[] = [];
 
     for (let i = 0; i < flatTasks.length; i++) {
         const task = flatTasks[i];
+        const wbsId = task.id || "";
+        const internalId = generateId();
+
         const treeTask: TreeTask = {
             ...task,
-            id: task.id || crypto.randomUUID(),
+            id: internalId,
+            wbsId: wbsId,
             parentId: null,
             children: [],
             orderIndex: i
         };
 
-        // Level 1 is root
-        if (task.outlineLevel === 1) {
-            rootTasks.push(treeTask);
-            stack.length = 0; // Clear stack
-            stack.push(treeTask);
+        allTreeTasks.push(treeTask);
+        if (wbsId) {
+            taskMap.set(wbsId, treeTask);
+        }
+    }
+
+    // 2. Build the tree
+    for (const task of allTreeTasks) {
+        const wbsId = task.wbsId;
+
+        if (!wbsId) {
+            // No WBS ID -> Root
+            rootTasks.push(task);
+            continue;
+        }
+
+        // Determine parent WBS ID: "1.2.3" -> "1.2"
+        const lastDotIndex = wbsId.lastIndexOf('.');
+        let parentWbsId = null;
+
+        if (lastDotIndex !== -1) {
+            parentWbsId = wbsId.substring(0, lastDotIndex);
         } else {
-            // Find parent
-            // If current level is N, parent is at stack[N-2] (since stack is 0-indexed and levels are 1-indexed)
-            // Example: Level 2 task. Parent should be Level 1 (stack[0]).
-            // We need to pop from stack until we find the parent (level < current level)
+            // "1" -> parent null
+            parentWbsId = null;
+        }
 
-            while (stack.length > 0 && stack[stack.length - 1].outlineLevel >= task.outlineLevel) {
-                stack.pop();
-            }
-
-            if (stack.length > 0) {
-                const parent = stack[stack.length - 1];
-                treeTask.parentId = parent.id;
-                parent.children.push(treeTask);
-            } else {
-                // Fallback: if indentation is messed up, treat as root or attach to last root
-                // For now, treat as root
-                rootTasks.push(treeTask);
-            }
-
-            stack.push(treeTask);
+        if (parentWbsId && taskMap.has(parentWbsId)) {
+            const parent = taskMap.get(parentWbsId)!;
+            task.parentId = parent.id; // Link using INTERNAL ID
+            parent.children.push(task);
+        } else {
+            // Root
+            rootTasks.push(task);
         }
     }
 
@@ -71,6 +92,7 @@ export function flattenTreeForDb(treeTasks: TreeTask[]): any[] {
                 indent_level: task.outlineLevel,
                 parent_id: task.parentId,
                 order_index: task.orderIndex,
+                wbs_id: task.wbsId, // Persist the WBS ID too
                 metadata: JSON.stringify(task.metadata || {})
             });
             if (task.children.length > 0) {

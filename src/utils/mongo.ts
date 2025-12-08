@@ -1,27 +1,19 @@
-import { MongoClient, MongoClientOptions } from 'mongodb';
+import { Db, MongoClient } from 'mongodb';
 
 let client: MongoClient | null = null;
 
 export async function getMongoClient(env: any): Promise<MongoClient> {
-    if (client) {
-        return client;
-    }
-
-    const uri = env.MONGO_URI;
-    if (!uri) {
-        throw new Error('MONGO_URI is not defined in environment variables');
-    }
+    if (client) return client;
 
     try {
         // Cloudflare Workers connect via TCP so standard driver works 
         // but connection pooling logic might be slightly different in serverless.
         // However, for standard driver in a worker, we just connect.
         // Note: It's good practice to set maxPoolSize to a small number for serverless.
-        client = new MongoClient(uri, {
-            maxPoolSize: 1
-        } as MongoClientOptions);
+        client = new MongoClient(env.MONGO_URI);
 
         await client.connect();
+
         return client;
     } catch (err) {
         console.error("Failed to connect to MongoDB", err);
@@ -29,6 +21,41 @@ export async function getMongoClient(env: any): Promise<MongoClient> {
     }
 }
 
-export function getDb(client: MongoClient, dbName: string = 'wbs-ingestion') {
+export function getDb(client: MongoClient, dbName: string = 'wbs-ingestion'): Db {
     return client.db(dbName);
+}
+
+export function saveTasksToDb(ctx: ExecutionContext, db: Db, projectId: string, dbRows: any[]) {
+    const docs = dbRows.map(row => ({
+        _id: row.id,
+        project_id: projectId,
+        name: row.name,
+        indent_level: row.indent_level, // Ensure casing matches what you want in Mongo
+        parent_id: row.parent_id,
+        order_index: row.order_index,
+        wbs_id: row.wbs_id,
+        metadata: JSON.parse(row.metadata || '{}') // Store as real JSON in Mongo
+    }));
+
+    if (docs.length > 0) {
+        const BATCH_SIZE = 25;
+        const batches = [];
+
+        for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+            batches.push(docs.slice(i, i + BATCH_SIZE));
+        }
+
+        // Process batches sequentially to avoid overwhelming the connection/timeout
+
+        for (const batch of batches) {
+            const operations = batch.map(doc => ({
+                replaceOne: {
+                    filter: { _id: doc._id },
+                    replacement: doc,
+                    upsert: true
+                }
+            }));
+            ctx.waitUntil(db.collection('tasks').bulkWrite(operations));
+        }
+    }
 }
