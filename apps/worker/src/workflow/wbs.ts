@@ -1,17 +1,9 @@
-import { getRandom } from '@cloudflare/containers';
 import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { AIService } from '../ai';
 import { ModelResults, ComparisonResult } from '@wbs/domains';
 import { getMongoClient, getDb } from '../utils/mongo';
-import { MppService } from '../containers/mpp';
 import { sortTasksByWbsId } from '../utils/treeUtils';
-
-const INSTANCE_COUNT = 3;
-
-interface WfEnv extends Env {
-    MPP_SERVICE_DO: DurableObjectNamespace<MppService>;
-}
 
 interface WorkflowParams {
     fileKey: string;
@@ -21,7 +13,7 @@ interface WorkflowParams {
     models?: string[]; // Optional: List of models to run (for partial runs)
 }
 
-export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
+export class WbsWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
     async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
         const { fileKey, projectId, fileName, skipCache } = event.payload;
         const client = await getMongoClient(this.env);
@@ -84,18 +76,22 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                     // Wait, the plan says "The Workflow (or a subsequent Worker) converts...".
                     // Plan says: "Workflow passes this key to the MPXJ Container. Container downloads the file directly from R2".
 
-                    const containerInstance = await getRandom(this.env.MPP_SERVICE_DO, INSTANCE_COUNT);
-                    const response = await containerInstance.fetch('http://mpp-service/parse', {
-                        method: 'POST',
-                        body: JSON.stringify({ fileKey }), // Container needs to handle R2 download
-                        headers: { 'Content-Type': 'application/json' }
-                    });
+                    const file = await this.env.FILES_BUCKET.get(fileKey);
+                    if (!file) {
+                        throw new Error(`File not found: ${fileKey}`);
+                    }
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
 
-                    if (!response.ok) {
-                        throw new Error(`MPP Service failed: ${response.statusText}`);
+                    const response = await this.env.WBS_MPP_SERVICE.processMpp(uint8Array);
+
+                    if (!response) {
+                        throw new Error(`MPP Service failed: ${response}`);
                     }
 
-                    return [{ model: 'none', tasks: await response.json() }];
+                    console.log(response);
+
+                    return [];// [{ model: 'none', tasks: response }];
                 });
             } else if (fileExtension === 'pdf') {
                 // Step 1: Extract Markdown from PDF via Azure Document Intelligence

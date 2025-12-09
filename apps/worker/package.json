@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
-    "@cloudflare/containers": "^0.0.30",
     "@google/genai": "^1.31.0",
     "@wbs/domains": "workspace:*",
     "hono": "^4.10.7",

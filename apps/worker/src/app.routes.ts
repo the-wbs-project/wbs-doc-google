@@ -4,9 +4,6 @@ import { AIService } from './ai';
 import { getMongoClient, getDb } from './utils/mongo';
 import { reconstructTree } from './utils/treeUtils';
 
-export * from './containers/mpp';
-export * from './workflow/wbs';
-
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors());
@@ -79,14 +76,11 @@ app.get('/api/projects/:projectId', async (c) => {
         const db = getDb(client);
 
         const project = await db.collection('projects').findOne({ _id: projectId as any });
-        console.log(`[DEBUG] Project fetched: ${!!project}`);
 
         let tree: any[] = [];
 
         // Fetch legacy tasks collection (Active Grid)
-        console.log('[DEBUG] Fetching active tasks...');
         const tasks = await db.collection('tasks').find({ project_id: projectId }).sort({ order_index: 1 }).toArray();
-        console.log(`[DEBUG] Tasks fetched: ${tasks?.length}`);
 
         if (tasks && tasks.length > 0) {
             const flatTasks = tasks.map((t: any) => ({
@@ -98,14 +92,11 @@ app.get('/api/projects/:projectId', async (c) => {
                 metadata: t.metadata
             }));
 
-            console.log('[DEBUG] Reconstructing tree...');
             tree = reconstructTree(flatTasks);
-            console.log(`[DEBUG] Tree reconstructed. Nodes: ${tree.length}`);
         }
 
         // If project has model_results (new flow), return it alongside the tree
         if (project && (project.model_results || project.comparison_result)) {
-            console.log('[DEBUG] Returning new flow results with tree');
             return c.json({
                 modelResults: project.model_results,
                 comparison: project.comparison_result,

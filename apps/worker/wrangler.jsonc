@@ -15,6 +15,13 @@
             "id": "123"
         }
     ],
+    "services": [
+        {
+            "binding": "WBS_MPP_SERVICE",
+            "service": "wbs-mpp-service",
+            "remote": true
+        }
+    ],
     "r2_buckets": [
         {
             "binding": "FILES_BUCKET",
@@ -27,33 +34,6 @@
             "binding": "INGESTION_WORKFLOW",
             "name": "wbs-workflow",
             "class_name": "WbsWorkflow"
-        }
-    ],
-    "durable_objects": {
-        "bindings": [
-            {
-                "name": "MPP_SERVICE_DO",
-                "class_name": "MppService"
-            }
-        ]
-    },
-    "migrations": [
-        {
-            "tag": "v1",
-            "new_sqlite_classes": [
-                "MppService"
-            ]
-        },
-        {
-            "tag": "v2",
-            "deleted_classes": []
-        }
-    ],
-    "containers": [
-        {
-            "max_instances": 3,
-            "image": "./containers/java-mpp/Dockerfile",
-            "class_name": "MppService"
         }
     ],
     "assets": {
