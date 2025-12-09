@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService } from '../../services/api';
 import { ProjectData, ComparisonResult, ModelResults } from '@wbs/domains';
-import { TaskComparisonComponent } from '../task-comparison/task-comparison.component';
-import { TaskTreeGridComponent } from '../task-tree-grid/task-tree-grid.component';
+import { TaskComparisonComponent } from '../task-comparison/task-comparison';
+import { TaskTreeGridComponent } from '../task-tree-grid/task-tree-grid';
 // @ts-ignore
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 

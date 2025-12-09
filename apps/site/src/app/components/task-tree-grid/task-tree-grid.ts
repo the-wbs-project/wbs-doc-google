@@ -10,8 +10,8 @@ import { ApiService } from '../../services/api';
     selector: 'app-task-tree-grid',
     imports: [CommonModule, TreeGridModule, DialogModule, FormsModule],
     providers: [EditService, ToolbarService],
-    templateUrl: './task-tree-grid.component.html',
-    styleUrls: ['./task-tree-grid.component.scss'],
+    templateUrl: './task-tree-grid.html',
+    styleUrls: ['./task-tree-grid.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskTreeGridComponent {

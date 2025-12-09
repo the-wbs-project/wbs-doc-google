@@ -16,8 +16,8 @@ interface ComparisonRow {
 @Component({
     standalone: true,
     selector: 'app-task-comparison',
-    templateUrl: './task-comparison.component.html',
-    styleUrls: ['./task-comparison.component.scss'],
+    templateUrl: './task-comparison.html',
+    styleUrls: ['./task-comparison.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TaskComparisonComponent {
