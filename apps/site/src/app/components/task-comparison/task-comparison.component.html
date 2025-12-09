@@ -1,0 +1,81 @@
+<div class="comparison-container p-4 overflow-x-auto">
+    <div class="mb-4 flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold mb-2">AI Model Comparison</h2>
+            @if (comparison()?.summary) {
+                <p class="text-gray-600 italic">{{ comparison()?.summary }}</p>
+            }
+        </div>
+        <button (click)="refineComparison()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-semibold flex items-center gap-2">
+            <span class="material-icons text-base">auto_fix_high</span>
+            Refine Comparison
+        </button>
+    </div>
+
+    <table class="min-w-full border-collapse border border-gray-300">
+        <thead>
+            <tr class="bg-gray-100">
+                <th class="p-2 border border-gray-300 w-1/4">Consensus Task</th>
+                @for (model of modelNames(); track model) {
+                    <th class="p-2 border border-gray-300">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold">{{ model }}</span>
+                                <div class="flex gap-1">
+                                    <button (click)="rerunModel(model)" class="text-gray-500 hover:text-blue-600" title="Rerun Analysis">
+                                        <span class="material-icons text-sm">refresh</span>
+                                    </button>
+                                    <button (click)="deleteModel(model)" class="text-gray-500 hover:text-red-600" title="Remove Model">
+                                        <span class="material-icons text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <button (click)="promote.emit(model)" class="w-full text-xs bg-indigo-50 text-indigo-700 py-1 px-2 rounded hover:bg-indigo-100 border border-indigo-200">
+                                Promote to Grid
+                            </button>
+                        </div>
+                    </th>
+                }
+                <th class="p-2 border border-gray-300 w-24">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (row of rows(); track row.wbsId) {
+                <tr [class.bg-red-50]="row.status === 'needs_review'" class="hover:bg-gray-50">
+                    <td class="p-2 border border-gray-300 align-top">
+                        <div class="font-bold flex items-center" [style.padding-left.rem]="row.level * 1.5">
+                            <span class="mr-2">{{ row.wbsId }}</span>
+                            <span>{{ row.name }}</span>
+                        </div>
+                        @if (row.discrepancies) {
+                            <div class="text-[10px] text-red-600 mt-1" [style.padding-left.rem]="(row.level * 1.5) + 2">
+                                {{ row.discrepancies }}
+                            </div>
+                        }
+                    </td>
+                    @for (model of modelNames(); track model) {
+                        <td class="p-2 border border-gray-300 align-top">
+                            @if (row.models[model]; as modelTask) {
+                                <div class="text-xs flex" [style.padding-left.rem]="row.level * 1.5">
+                                    <span class="font-mono text-gray-500 mr-2 whitespace-nowrap">{{ modelTask.wbsId }}</span>
+                                    <span>{{ modelTask.name }}</span>
+                                </div>
+                            } @else {
+                                <div class="text-xs text-gray-300 italic" [style.padding-left.rem]="row.level * 1.5">Missing</div>
+                            }
+                        </td>
+                    }
+                    <td class="p-2 border border-gray-300 align-top text-center">
+                        <span [class.bg-green-100]="row.status === 'pass'"
+                              [class.text-green-800]="row.status === 'pass'"
+                              [class.bg-red-100]="row.status === 'needs_review'"
+                              [class.text-red-800]="row.status === 'needs_review'"
+                              class="px-2 py-1 rounded text-xs font-semibold uppercase">
+                            {{ row.status === 'pass' ? 'Match' : 'Diff' }}
+                        </span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

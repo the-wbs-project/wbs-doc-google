@@ -9,10 +9,10 @@ export class AIService {
     readonly gemini: GeminiService;
     readonly azure: AzureService;
 
-    constructor(env: Env) {
-        this.anthropic = new AnthropicService(env);
-        this.openai = new OpenAIService(env);
-        this.gemini = new GeminiService(env);
+    constructor(env: Env, skipCache: boolean) {
+        this.anthropic = new AnthropicService(env, skipCache);
+        this.openai = new OpenAIService(env, skipCache);
+        this.gemini = new GeminiService(env, skipCache);
         this.azure = new AzureService(env);
     }
 }

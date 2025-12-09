@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
+import { ComparisonResult, ModelResults } from "@wbs/domains";
 import { NonRetryableError } from "cloudflare:workflows";
 import { z } from "zod";
 import { IAIProvider } from "./interface";
-import { ComparisonResult, ComparedTask, ModelResults } from "@wbs/domains";
 
 const TreeTaskSchema = z.object({
     wbsId: z.string(),
@@ -83,7 +83,7 @@ export class GeminiService implements IAIProvider {
     private readonly client: GoogleGenAI;
     private readonly model: string;
 
-    constructor(env: Env) {
+    constructor(env: Env, skipCache: boolean) {
         // Construct options if necessary. 
         // SDK constructor: new GoogleGenAI({ apiKey, ... })
         this.model = env.AI_GOOGLE_MODEL;
@@ -94,7 +94,10 @@ export class GeminiService implements IAIProvider {
             apiKey: env.AI_GOOGLE_KEY,
             apiVersion: version,
             httpOptions: {
-                baseUrl: `${env.AI_GATEWAY_URL}/google-ai-studio`
+                baseUrl: `${env.AI_GATEWAY_URL}/google-ai-studio`,
+                headers: {
+                    'cf-aig-skip-cache': `${skipCache}`
+                }
             }
         });
     }
@@ -236,6 +239,77 @@ export class GeminiService implements IAIProvider {
             }
             console.error("Failed to parse Gemini Comparison JSON or API error", e);
             throw new NonRetryableError("Invalid JSON returned by Gemini during comparison or API Error");
+        }
+    }
+    async refineTasks(tasks: any[], instructions: string): Promise<any[]> {
+        const systemMessage = "You are an expert WBS editor. Your goal is to modify the provided WBS task list according to the user's instructions.";
+        const userMessage = `Here is a list of WBS tasks:
+${JSON.stringify(tasks, null, 2)}
+
+Instructions: ${instructions}
+
+Return the modified list of tasks in the same JSON structure. Maintain the hierarchy and metadata unless instructed otherwise.`;
+
+        const contents = [{
+            role: "user",
+            parts: [{ text: userMessage }]
+        }];
+
+        const config: any = {
+            temperature: 0.1,
+            topP: 0.95,
+            maxOutputTokens: 65536,
+            responseMimeType: "application/json",
+            responseSchema: GeminiSchema, // Reuse the same schema as generation
+            systemInstruction: { parts: [{ text: systemMessage }] }
+        };
+
+        try {
+            const response = await this.client.models.generateContent({
+                model: this.model,
+                contents: contents as any,
+                config: config
+            });
+
+            let rawText: string | null = null;
+            if (response.text) {
+                rawText = typeof response.text === 'string' ? response.text : (response.text as any)();
+            }
+            if (!rawText && response.candidates && response.candidates.length > 0) {
+                rawText = response.candidates[0].content?.parts?.[0]?.text || null;
+            }
+
+            if (!rawText) throw new NonRetryableError("No content in Gemini Refinement response");
+
+            const parsed = JSON.parse(rawText);
+
+            // Transform metadata array back to Record object for Zod validation (Same logic as generateContent)
+            if (parsed.tasks && Array.isArray(parsed.tasks)) {
+                parsed.tasks = parsed.tasks.map((task: any) => {
+                    const metadataRecord: Record<string, string | number> = {};
+                    if (task.metadata && Array.isArray(task.metadata)) {
+                        task.metadata.forEach((item: any) => {
+                            if (item.key && item.value) {
+                                const num = Number(item.value);
+                                metadataRecord[item.key] = !isNaN(num) ? num : item.value;
+                            }
+                        });
+                    }
+                    return {
+                        ...task,
+                        metadata: metadataRecord
+                    };
+                });
+            }
+
+            const validated = ResponseSchema.parse(parsed);
+
+            return validated.tasks;
+
+        } catch (e: any) {
+            if (e instanceof NonRetryableError) throw e;
+            console.error("Failed to parse Gemini Refinement JSON or API error", e);
+            throw new NonRetryableError("Refinement failed: " + (e.message || String(e)));
         }
     }
 }

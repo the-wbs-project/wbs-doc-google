@@ -1,9 +1,9 @@
-import { OpenAI } from "openai";
+import { ModelResults } from "@wbs/domains";
 import { NonRetryableError } from "cloudflare:workflows";
-import { z } from "zod";
+import { OpenAI } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
+import { z } from "zod";
 import { IAIProvider } from "./interface";
-import { ModelResults } from "../models/model-results";
 
 export interface ResponseInputItem {
     content: string;
@@ -31,10 +31,13 @@ export class OpenAIService implements IAIProvider {
     private readonly client: OpenAI;
     private readonly model: string;
 
-    constructor(env: Env) {
+    constructor(env: Env, skipCache: boolean) {
         this.client = new OpenAI({
             apiKey: env.AI_OPENAI_KEY,
             baseURL: `${env.AI_GATEWAY_URL}/openai`,
+            defaultHeaders: {
+                'cf-aig-skip-cache': `${skipCache}`
+            }
         });
         this.model = env.AI_OPENAI_MODEL;
     }

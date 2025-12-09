@@ -6,6 +6,8 @@ declare namespace Cloudflare {
   interface Env {
     KV_DATA: KVNamespace;
     FILES_BUCKET: R2Bucket;
+    ASSETS: Fetcher;
+    INGESTION_WORKFLOW: Workflow;
     AI_ANTHROPIC_MODEL: string;
     AI_ANTHROPIC_KEY: string;
     AI_GOOGLE_MODEL: string;

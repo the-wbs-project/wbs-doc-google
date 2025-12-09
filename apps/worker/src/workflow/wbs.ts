@@ -2,10 +2,10 @@ import { getRandom } from '@cloudflare/containers';
 import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { AIService } from '../ai';
-import { ModelResults } from '../models/model-results';
-import { ComparisonResult } from '../models/task-comparison';
+import { ModelResults, ComparisonResult } from '@wbs/domains';
 import { getMongoClient, getDb } from '../utils/mongo';
-import { MppService } from '../worker/containers';
+import { MppService } from '../containers/mpp';
+import { sortTasksByWbsId } from '../utils/treeUtils';
 
 const INSTANCE_COUNT = 3;
 
@@ -17,14 +17,16 @@ interface WorkflowParams {
     fileKey: string;
     projectId: string; // The ID of the project in D1
     fileName: string;
+    skipCache: boolean;
+    models?: string[]; // Optional: List of models to run (for partial runs)
 }
 
 export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
     async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-        const { fileKey, projectId, fileName } = event.payload;
+        const { fileKey, projectId, fileName, skipCache } = event.payload;
         const client = await getMongoClient(this.env);
         const db = getDb(client);
-        const aiService = new AIService(this.env);
+        const aiService = new AIService(this.env, skipCache);
 
         try {
             // Step 0: Create Project Record
@@ -40,6 +42,8 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                             $setOnInsert: {
                                 _id: projectId as any,
                                 name: fileName,
+                                file_key: fileKey,
+                                file_extension: fileKey.split('.').pop()?.toLowerCase(),
                                 created_at: new Date()
                             }
                         },
@@ -104,12 +108,31 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                 results = await step.do('analyze-document', async () => {
                     const systemMessage = "You are a project management expert. Extract task hierarchies precisely.";
                     const userMessage = 'Extract the Work Breakdown Structure (WBS) from the following document content.';
+                    const modelsToRun = event.payload.models || ['gemini', 'openai', 'anthropic'];
 
-                    return await Promise.all([
-                        aiService.gemini.generateContent([userMessage, markdownContent], systemMessage),
-                        aiService.openai.generateContent([userMessage, markdownContent], systemMessage),
-                        aiService.anthropic.generateContent([userMessage, markdownContent], systemMessage)
-                    ]);
+                    const promises: Promise<any>[] = [];
+
+                    if (modelsToRun.includes('gemini')) {
+                        promises.push(aiService.gemini.generateContent([userMessage, markdownContent], systemMessage));
+                    }
+                    if (modelsToRun.includes('openai')) {
+                        promises.push(aiService.openai.generateContent([userMessage, markdownContent], systemMessage));
+                    }
+                    if (modelsToRun.includes('anthropic')) {
+                        promises.push(aiService.anthropic.generateContent([userMessage, markdownContent], systemMessage));
+                    }
+
+                    return await Promise.all(promises);
+                });
+            }
+
+
+            // Step: Sort results by WBS ID to ensure correct order
+            if (Array.isArray(results)) {
+                results.forEach(r => {
+                    if (r.tasks) {
+                        r.tasks = sortTasksByWbsId(r.tasks);
+                    }
                 });
             }
 
@@ -119,19 +142,47 @@ export class WbsWorkflow extends WorkflowEntrypoint<WfEnv, WorkflowParams> {
                 });
             }
 
-            // Step 4: Reconstruct Tree
-            /*const tree = reconstructTree(flatTasks);
-            const dbRows = flattenTreeForDb(tree);
-
-            // Step 5: Persist
+            // Step 5: Persist Results (Merged)
             await step.do('persist-db', async () => {
                 try {
-                    await saveTasksToDb(this.ctx, db, projectId, dbRows);
+                    // Fetch existing project to merge results
+                    const existingProject = await db.collection('projects').findOne({ _id: projectId as any });
+
+                    let finalResults = results as ModelResults[];
+
+                    if (existingProject && existingProject['model_results']) {
+                        const existingResults = existingProject['model_results'] as ModelResults[];
+                        // Filter out results that are being replaced by the current run
+                        const currentModelNames = (results as ModelResults[]).map(r => r.model);
+                        const keptResults = existingResults.filter(r => !currentModelNames.includes(r.model));
+
+                        finalResults = [...keptResults, ...(results as ModelResults[])];
+                    }
+
+                    // Re-run comparison on the consolidated results
+                    if (finalResults.length > 1) {
+                        comparison = await aiService.gemini.compareResults(finalResults);
+                    } else {
+                        // If only one model result exists, we can't really compare, or we just set it as single source
+                        // For now, let's just clear comparison if < 2 models
+                        comparison = undefined;
+                    }
+
+                    await db.collection('projects').updateOne(
+                        { _id: projectId as any },
+                        {
+                            $set: {
+                                model_results: finalResults,
+                                comparison_result: comparison,
+                                last_updated: new Date()
+                            }
+                        }
+                    );
                 } catch (e) {
-                    console.error("Failed to persist tasks to DB.", e);
-                    throw new Error(`DB Error (Persist Tasks): ${(e as Error).message}.`);
+                    console.error("Failed to persist results to DB.", e);
+                    throw new Error(`DB Error (Persist Results): ${(e as Error).message}.`);
                 }
-            });*/
+            });
 
             return { success: true, results: results, comparison };
 

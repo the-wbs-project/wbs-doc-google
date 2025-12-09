@@ -1,8 +1,8 @@
 import { Anthropic } from "@anthropic-ai/sdk";
+import { ModelResults } from "@wbs/domains";
 import { NonRetryableError } from "cloudflare:workflows";
 import { z } from "zod";
 import { IAIProvider } from "./interface";
-import { ModelResults } from "../models/model-results";
 
 const MetadataItemSchema = z.object({
     key: z.string(),
@@ -57,12 +57,13 @@ export class AnthropicService implements IAIProvider {
     private readonly model: string;
     private readonly maxTokens: number;
 
-    constructor(env: Env) {
+    constructor(env: Env, skipCache: boolean) {
         this.model = env.AI_ANTHROPIC_MODEL;
         this.client = new Anthropic({
             apiKey: env.AI_ANTHROPIC_KEY,
             baseURL: `${env.AI_GATEWAY_URL}/anthropic`,
             defaultHeaders: {
+                'cf-aig-skip-cache': `${skipCache}`,
                 'anthropic-beta': 'structured-outputs-2025-11-13' // Enable beta feature
             }
         });

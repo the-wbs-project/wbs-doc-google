@@ -23,4 +23,20 @@ export class ApiService {
   getProject(projectId: string): Observable<ProjectData> {
     return this.http.get<ProjectData>(`/api/projects/${projectId}`);
   }
+
+  refineProject(tasks: any[], instructions: string): Observable<{ tasks: any[] }> {
+    return this.http.post<{ tasks: any[] }>('/api/ai/refine', { tasks, instructions });
+  }
+
+  deleteModelResult(projectId: string, modelId: string): Observable<any> {
+    return this.http.delete(`/api/projects/${projectId}/models/${modelId}`);
+  }
+
+  rerunModel(projectId: string, modelId: string): Observable<any> {
+    return this.http.post(`/api/projects/${projectId}/models/${modelId}/rerun`, {});
+  }
+
+  promoteModel(projectId: string, modelId: string): Observable<any> {
+    return this.http.post(`/api/projects/${projectId}/models/${modelId}/promote`, {});
+  }
 }

@@ -1,0 +1,38 @@
+<div class="tree-grid-container h-full flex flex-col">
+    <div class="toolbar mb-2 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Task Editor</h3>
+        <button class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2" (click)="openRefineDialog()">
+            <span>✨ Refine with AI</span>
+        </button>
+    </div>
+
+    <!-- Note: Syncfusion TreeGrid data source binding [dataSource]="tasks()" -->
+    <ejs-treegrid #treegrid [dataSource]="tasks()" [treeColumnIndex]="1" childMapping="children" 
+                  [editSettings]="editSettings" [toolbar]="toolbar"
+                  id="taskTreeGrid" height="100%">
+        <e-columns>
+            <e-column field="wbsId" headerText="WBS ID" width="100" textAlign="Left"></e-column>
+            <e-column field="name" headerText="Task Name" width="250"></e-column>
+            <e-column field="duration" headerText="Duration" width="90" textAlign="Right"></e-column>
+            <e-column field="startDate" headerText="Start Date" width="130" format="yMd" textAlign="Right"></e-column>
+            <e-column field="endDate" headerText="End Date" width="130" format="yMd" textAlign="Right"></e-column>
+        </e-columns>
+    </ejs-treegrid>
+
+    <ejs-dialog id="refineDialog" [visible]="showRefineDialog()" [header]="'Refine with AI'" [showCloseIcon]="true" width="400px" (close)="closeRefineDialog()">
+        <ng-template #content>
+            <div class="p-4">
+                <p class="mb-2 text-sm text-gray-600">Enter instructions to modify the WBS (e.g., "Remove emojis", "Reorder by date").</p>
+                <textarea [ngModel]="refineInstructions()" (ngModelChange)="refineInstructions.set($event)" class="w-full border rounded p-2 h-32" placeholder="Instructions..."></textarea>
+            </div>
+        </ng-template>
+        <ng-template #footerTemplate>
+            <div class="p-2 flex justify-end gap-2">
+                <button (click)="closeRefineDialog()" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                <button (click)="submitRefinement()" [disabled]="isRefining()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50">
+                    {{ isRefining() ? 'Refining...' : 'Submit' }}
+                </button>
+            </div>
+        </ng-template>
+    </ejs-dialog>
+</div>

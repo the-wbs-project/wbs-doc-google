@@ -17,4 +17,5 @@ export interface ProjectData {
     name: string;
     tree?: any[];
     comparison?: ComparisonResult;
+    modelResults?: any[]; // ModelResults[]
 }

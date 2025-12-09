@@ -1,6 +1,6 @@
 {
     "name": "wbs-ingestion",
-    "main": "src/worker/index.ts",
+    "main": "src/index.ts",
     "account_id": "004dc1af737b22a8aa83b3550fa9b9d3",
     "compatibility_date": "2025-07-12",
     "compatibility_flags": [

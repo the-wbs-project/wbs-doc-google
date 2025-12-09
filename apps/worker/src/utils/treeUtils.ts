@@ -1,4 +1,4 @@
-import { generateId } from "../utils/generate-id";
+import { generateId } from "./generate-id";
 
 export interface FlatTask {
     id?: string;
@@ -103,4 +103,34 @@ export function flattenTreeForDb(treeTasks: TreeTask[]): any[] {
 
     traverse(treeTasks);
     return result;
+}
+
+export function sortTasksByWbsId(tasks: any[]): any[] {
+    return tasks.sort((a, b) => {
+        const wbsA = a.wbsId || "";
+        const wbsB = b.wbsId || "";
+
+        if (!wbsA && !wbsB) return 0;
+        if (!wbsA) return 1; // Put tasks without WBS ID at the end
+        if (!wbsB) return -1;
+
+        const partsA = wbsA.split('.').map((p: string) => parseInt(p, 10));
+        const partsB = wbsB.split('.').map((p: string) => parseInt(p, 10));
+
+        const len = Math.max(partsA.length, partsB.length);
+
+        for (let i = 0; i < len; i++) {
+            const valA = partsA[i];
+            const valB = partsB[i];
+
+            if (valA === undefined) return -1; // A is shorter, comes first (e.g., 1 vs 1.1)
+            if (valB === undefined) return 1;  // B is shorter, comes first
+
+            if (valA !== valB) {
+                return valA - valB;
+            }
+        }
+
+        return 0;
+    });
 }

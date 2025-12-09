@@ -1,16 +1,12 @@
 import { Db, MongoClient } from 'mongodb';
 
-let client: MongoClient | null = null;
-
 export async function getMongoClient(env: any): Promise<MongoClient> {
-    if (client) return client;
-
     try {
         // Cloudflare Workers connect via TCP so standard driver works 
         // but connection pooling logic might be slightly different in serverless.
         // However, for standard driver in a worker, we just connect.
         // Note: It's good practice to set maxPoolSize to a small number for serverless.
-        client = new MongoClient(env.MONGO_URI);
+        const client = new MongoClient(env.MONGO_URI);
 
         await client.connect();
 
