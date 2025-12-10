@@ -1,7 +1,5 @@
-import { TreeTask } from './tree-task';
-
-export interface ModelResults {
+export interface ModelResults<T> {
     model: string;
-    tasks: TreeTask[];
+    results: T;
     error?: string;
 }

@@ -1,6 +1,15 @@
-export interface TreeTask {
-    wbsId: string;
+export interface FlatTask {
+    id?: string;
     name: string;
-    metadata: Record<string, string | number>;
-    children?: TreeTask[];
+    outlineLevel: number;
+    wbsId?: string;
+    metadata?: Record<string, string | number>;
+}
+
+export interface TreeTask extends FlatTask {
+    id: string;
+    wbsId: string;
+    parentId: string | null;
+    children: TreeTask[];
+    orderIndex: number;
 }

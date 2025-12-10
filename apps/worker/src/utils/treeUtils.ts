@@ -1,19 +1,7 @@
 import { generateId } from "./generate-id";
+import { FlatTask, TreeTask } from "@wbs/domains";
 
-export interface FlatTask {
-    id?: string;
-    name: string;
-    outlineLevel: number; // 1-based
-    metadata?: any;
-}
-
-export interface TreeTask extends FlatTask {
-    id: string; // Internal UUID
-    wbsId: string; // "1.1", "1.2.1" etc from parsing
-    parentId: string | null; // Internal UUID of parent
-    children: TreeTask[];
-    orderIndex: number;
-}
+export type { FlatTask, TreeTask };
 
 export function reconstructTree(flatTasks: FlatTask[]): TreeTask[] {
     const rootTasks: TreeTask[] = [];
@@ -29,7 +17,7 @@ export function reconstructTree(flatTasks: FlatTask[]): TreeTask[] {
 
     for (let i = 0; i < flatTasks.length; i++) {
         const task = flatTasks[i];
-        const wbsId = task.id || "";
+        const wbsId = (task as any).wbsId || task.id || "";
         const internalId = generateId();
 
         const treeTask: TreeTask = {

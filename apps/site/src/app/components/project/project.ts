@@ -15,7 +15,7 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
   styleUrl: './project.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ProjectComponent implements OnInit {
+export class ProjectComponent implements OnInit { // trigger build
   @ViewChild('tableDiv') tableDiv!: ElementRef;
 
   private route = inject(ActivatedRoute);
@@ -62,7 +62,17 @@ export class ProjectComponent implements OnInit {
           this.status.set('Project loaded successfully.');
           this.statusClass.set('success');
 
-          if (this.activeTab() === 'legacy' && data.tree) {
+          // Determine starting tab
+          // If we have AI model results, default to comparison
+          if (data.modelResults && data.modelResults.length > 0) {
+            this.activeTab.set('comparison');
+          }
+          // If we have no model results but we have a tree (e.g. MPP file), default to editor
+          else if (data.tree && data.tree.length > 0) {
+            this.activeTab.set('editor');
+          }
+          // Fallback or existing logic for legacy tab
+          else if (this.activeTab() === 'legacy' && data.tree) {
             setTimeout(() => this.renderTable(data.tree!), 0);
           }
         } else {

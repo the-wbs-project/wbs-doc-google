@@ -1,7 +1,7 @@
 
-import { Component, ChangeDetectionStrategy, input, output, inject, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ComparisonResult, ModelResults } from '@wbs/domains';
+import { ComparisonResult, ModelResults, TreeTask } from '@wbs/domains';
 import { ApiService } from '../../services/api';
 
 interface ComparisonRow {
@@ -20,15 +20,29 @@ interface ComparisonRow {
     styleUrls: ['./task-comparison.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TaskComparisonComponent {
+export class TaskComparisonComponent { // trigger build
     private readonly api = inject(ApiService);
 
     readonly comparison = input<ComparisonResult | undefined>(undefined);
-    readonly modelResults = input<ModelResults[]>([]);
+    readonly modelResults = input<ModelResults<TreeTask[]>[]>([]);
     readonly projectId = input.required<string>();
 
     readonly refresh = output<void>();
     readonly promote = output<string>();
+
+    readonly activeMenu = signal<string | null>(null);
+
+    toggleMenu(modelName: string) {
+        if (this.activeMenu() === modelName) {
+            this.activeMenu.set(null);
+        } else {
+            this.activeMenu.set(modelName);
+        }
+    }
+
+    closeMenu() {
+        this.activeMenu.set(null);
+    }
 
 
     modelNames = computed(() => this.modelResults()?.map(r => r.model) || []);
@@ -56,11 +70,11 @@ export class TaskComparisonComponent {
             names.forEach(modelName => {
                 const result = results?.find(r => r.model === modelName);
                 if (result) {
-                    const task = result.tasks.find(t => t.wbsId === comparedTask.wbsId);
+                    const task = result.results.find(t => t.wbsId === comparedTask.wbsId);
                     if (task) {
                         row.models[modelName] = task;
                     } else {
-                        const fuzzy = result.tasks.find(t => t.name === comparedTask.name);
+                        const fuzzy = result.results.find(t => t.name === comparedTask.name);
                         if (fuzzy) {
                             row.models[modelName] = fuzzy;
                         }

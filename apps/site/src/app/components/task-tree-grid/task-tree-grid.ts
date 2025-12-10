@@ -14,7 +14,7 @@ import { ApiService } from '../../services/api';
     styleUrls: ['./task-tree-grid.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TaskTreeGridComponent {
+export class TaskTreeGridComponent { // trigger build
     tasks = input<any[]>([]);
     tasksChange = output<any[]>();
 

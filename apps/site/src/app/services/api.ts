@@ -29,14 +29,14 @@ export class ApiService {
   }
 
   deleteModelResult(projectId: string, modelId: string): Observable<any> {
-    return this.http.delete(`/api/projects/${projectId}/models/${modelId}`);
+    return this.http.delete(`/api/projects/${projectId}/models/${encodeURIComponent(modelId)}`);
   }
 
   rerunModel(projectId: string, modelId: string): Observable<any> {
-    return this.http.post(`/api/projects/${projectId}/models/${modelId}/rerun`, {});
+    return this.http.post(`/api/projects/${projectId}/models/${encodeURIComponent(modelId)}/rerun`, {});
   }
 
   promoteModel(projectId: string, modelId: string): Observable<any> {
-    return this.http.post(`/api/projects/${projectId}/models/${modelId}/promote`, {});
+    return this.http.post(`/api/projects/${projectId}/models/${encodeURIComponent(modelId)}/promote`, {});
   }
 }
