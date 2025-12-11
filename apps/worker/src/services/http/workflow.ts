@@ -53,6 +53,7 @@ export async function workflowStatus(ctx: Context): Promise<Response> {
     const id = ctx.req.param('id');
     try {
         const instance = await ctx.env.INGESTION_WORKFLOW.get(id);
+
         const status = await instance.status();
         return ctx.json(status);
     } catch (e) {

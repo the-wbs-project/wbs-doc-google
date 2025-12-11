@@ -45,26 +45,11 @@ export class MppWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
                 }
                 const mppTasks = mappResults.tasks;
 
-                // Map to DB schema
-                const tasksToSave = mppTasks.map((t: any, index: number) => {
-                    const wbsId = t.levelText || '';
-                    const indentLevel = wbsId ? wbsId.split('.').length : 1;
+                console.log(mppTasks);
 
-                    return {
-                        _id: t.id ? String(t.id) : crypto.randomUUID(),
-                        project_id: projectId,
-                        name: t.title,
-                        indent_level: indentLevel,
-                        wbs_id: wbsId,
-                        order_index: index,
-                        metadata: JSON.stringify({ ...t.metadata, resources: t.resources })
-                    };
-                });
+                //SAVE TAKS TO PROJECT.TREE
 
-                // Clear existing tasks and insert new ones via service
-                await projectService.replaceTasks(projectId, []); // tasksToSave);
-
-                return { success: true, count: tasksToSave.length };
+                return { success: true, tree: mppTasks };
             });
 
             return { success: true, type: 'mpp' };

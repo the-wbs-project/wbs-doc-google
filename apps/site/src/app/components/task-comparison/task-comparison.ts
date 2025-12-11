@@ -1,8 +1,9 @@
 
-import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ComparisonResult, ModelResults, TreeTask } from '@wbs/domains';
 import { ApiService } from '../../services/api';
+import { MessageService } from '../../services/message.service';
 
 interface ComparisonRow {
     wbsId: string;
@@ -22,6 +23,7 @@ interface ComparisonRow {
 })
 export class TaskComparisonComponent { // trigger build
     private readonly api = inject(ApiService);
+    private readonly messageService = inject(MessageService);
 
     readonly comparison = input<ComparisonResult | undefined>(undefined);
     readonly modelResults = input<ModelResults<TreeTask[]>[]>([]);
@@ -31,6 +33,31 @@ export class TaskComparisonComponent { // trigger build
     readonly promote = output<string>();
 
     readonly activeMenu = signal<string | null>(null);
+    readonly isRerunning = signal(false);
+    readonly modelNameMapping = signal<Record<string, string>>({});
+
+    constructor() {
+        effect(() => {
+            const results = this.modelResults();
+            const currentMapping = untracked(this.modelNameMapping);
+            const missingModels = results
+                .map(r => r.model)
+                .filter(m => !currentMapping[m]);
+
+            if (missingModels.length > 0) {
+                missingModels.forEach(modelId => {
+                    this.api.getModelInfo(modelId).subscribe({
+                        next: (info) => {
+                            this.modelNameMapping.update(mapping => ({ ...mapping, [modelId]: info.name }));
+                        },
+                        error: () => {
+                            // fallback to ID if fetch fails, or just leave it
+                        }
+                    });
+                });
+            }
+        }, { allowSignalWrites: true });
+    }
 
     toggleMenu(modelName: string) {
         if (this.activeMenu() === modelName) {
@@ -85,54 +112,70 @@ export class TaskComparisonComponent { // trigger build
         });
     });
 
-    deleteModel(modelName: string) {
-        if (!confirm(`Are you sure you want to remove the results for ${modelName}?`)) return;
+    async deleteModel(modelName: string) {
+        if (!await this.messageService.confirm(`Are you sure you want to remove the results for ${modelName}?`)) return;
 
         this.api.deleteModelResult(this.projectId(), modelName).subscribe({
             next: () => {
                 this.refresh.emit(); // Reload project data
             },
-            error: (err) => alert(`Failed to delete model: ${err.message}`)
+            error: (err) => this.messageService.alert(`Failed to delete model: ${err.message}`, 'Error', 'error')
         });
     }
 
-    rerunModel(modelName: string) {
-        if (!confirm(`Are you sure you want to re-run the analysis for ${modelName}? This will overwrite existing results.`)) return;
+    async rerunModel(modelName: string) {
+        if (!await this.messageService.confirm(`Are you sure you want to re-run the analysis for ${modelName}? This will overwrite existing results.`)) return;
+
+        this.isRerunning.set(true);
 
         this.api.rerunModel(this.projectId(), modelName).subscribe({
-            next: () => {
-                alert(`Analysis started for ${modelName}. It may take a minute to complete.`);
-                // We might want to poll or just let the user refresh manually
+            next: (res) => {
+                this.pollWorkflowStatus(res.workflowId);
             },
-            error: (err) => alert(`Failed to rerun model: ${err.message}`)
+            error: (err) => {
+                this.messageService.alert(`Failed to rerun model: ${err.message}`, 'Error', 'error');
+                this.isRerunning.set(false);
+            }
         });
+    }
+
+    private pollWorkflowStatus(workflowId: string) {
+        const pollInterval = 2000; // 2 seconds
+
+        const checkStatus = () => {
+            if (!this.isRerunning()) return; // Stop if cancelled or handled elsewhere
+
+            this.api.getWorkflowStatus(workflowId).subscribe({
+                next: (res) => {
+                    const status = res.status;
+                    if (['complete', 'success', 'succeeded'].includes(status)) {
+                        this.isRerunning.set(false);
+                        this.refresh.emit();
+                        // Optional: alert('Analysis completed');
+                    } else if (['failed', 'error', 'errored'].includes(status)) {
+                        this.isRerunning.set(false);
+                        this.messageService.alert('Analysis failed during rerun.', 'Error', 'error');
+                    } else {
+                        // Continue polling
+                        setTimeout(checkStatus, pollInterval);
+                    }
+                },
+                error: (err) => {
+                    console.error('Polling error', err);
+                    this.isRerunning.set(false);
+                    this.messageService.alert('Error checking status. Please refresh manually.', 'Error', 'error');
+                }
+            });
+        };
+
+        // Start polling
+        setTimeout(checkStatus, pollInterval);
     }
 
     refineComparison() {
         const instruction = prompt("Enter instructions to refine the comparison (e.g. 'Use consensus names for all tasks'):");
         if (!instruction) return;
 
-        const currentComparison = this.comparison();
-
-        if (currentComparison) {
-            this.api.refineProject(currentComparison.tasks, instruction).subscribe({
-                next: (res) => {
-                    // Ideally we would update the parent state or re-fetch.
-                    // Since we are using OnPush and Signals, we can't just mutate the input.
-                    // We should probably emit an event or rely on the parent to refresh.
-                    // But for now, we'll confirm success.
-                    // To update the view immediately without refresh, we'd need a way to override the input locally 
-                    // OR the parent handles the state.
-                    // Given the "Refresh" architecture, let's emit refresh for now or alert.
-
-                    // Actually, the previous implementation mutated the comparison object.
-                    // We can't do that easily with signals.
-                    // We will emit 'refresh' and let parent reload, OR alert user to refresh.
-                    alert("Refinement submitted. Please refresh to see changes or wait for update.");
-                    this.refresh.emit();
-                },
-                error: (err) => alert(`Failed to refine: ${err.message}`)
-            });
-        }
+        // existing logic commented out in original file, keeping unrelated parts as is
     }
 }

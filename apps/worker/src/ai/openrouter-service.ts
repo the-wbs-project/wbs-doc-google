@@ -58,6 +58,31 @@ export class OpenRouterService {
             parsedContent = message.transformer(parsedContent);
         }
 
-        return { model: message.model, results: parsedContent as T };
+        return { model: validResponse.model || message.model, results: parsedContent as T };
+    }
+
+    async getModelDetails(modelId: string): Promise<{ id: string; name: string; description?: string } | null> {
+        try {
+            const response = await fetch(`${this.baseUrl}/models`);
+            if (!response.ok) {
+                console.error(`Failed to fetch models from OpenRouter: ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json() as { data: any[] };
+            const model = data.data.find((m: any) => m.id === modelId);
+
+            if (model) {
+                return {
+                    id: model.id,
+                    name: model.name,
+                    description: model.description
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching model details:', error);
+            return null;
+        }
     }
 }

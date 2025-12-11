@@ -7,9 +7,11 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('*', cors());
 
 // API Routes
+app.get('/api/models/:modelId', HTTP.getModelInfo);
 app.post('/api/workflow/start', HTTP.workflowStart);
 app.get('/api/workflow/status/:id', HTTP.workflowStatus);
 app.get('/api/projects/:projectId', HTTP.getProject);
+app.put('/api/projects/:projectId', HTTP.updateProject);
 
 app.post('/api/projects/:projectId/models/:modelId/refine', HTTP.refineProject);
 app.post('/api/projects/:projectId/models/:modelId/rerun', HTTP.rerunModel);

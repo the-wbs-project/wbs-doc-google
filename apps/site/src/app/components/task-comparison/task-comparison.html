@@ -12,6 +12,13 @@
         </button>
     </div>
 
+    @if (isRerunning()) {
+        <div class="flex flex-col items-center justify-center p-8 bg-blue-50 border border-blue-100 rounded-lg mb-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+            <span class="text-blue-600 font-medium">Rerunning analysis...</span>
+        </div>
+    }
+
     <table class="min-w-full border-collapse border border-gray-300">
         <thead>
             <tr class="bg-gray-100">
@@ -19,7 +26,7 @@
                 @for (model of modelNames(); track model) {
                     <th class="p-2 border border-gray-300">
                         <div class="flex justify-between items-center relative">
-                            <span class="font-bold">{{ model }}</span>
+                            <span class="font-bold">{{ modelNameMapping()[model] || model }}</span>
                             
                             <button (click)="toggleMenu(model); $event.stopPropagation()" class="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">
                                 <span class="material-icons">more_vert</span>

@@ -14,6 +14,9 @@ export class WbsWorkflow extends WorkflowEntrypoint<Env, WbsWorkflowParams> {
         try {
             // Step 0: Create Project Record
             let project = await step.do('create-project', async () => {
+                const project = await projectService.getProject(projectId);
+                if (project) return project;
+
                 await projectService.upsertProject(projectId, {
                     name: fileName,
                     file_key: fileKey,

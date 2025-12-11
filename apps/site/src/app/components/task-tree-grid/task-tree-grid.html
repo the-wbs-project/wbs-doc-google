@@ -1,21 +1,28 @@
 <div class="tree-grid-container h-full flex flex-col">
     <div class="toolbar mb-2 flex justify-between items-center">
         <h3 class="text-lg font-semibold">Task Editor</h3>
-        <button class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2" (click)="openRefineDialog()">
-            <span>✨ Refine with AI</span>
-        </button>
+        <div class="flex gap-2">
+            <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 flex items-center gap-2 border border-gray-300" (click)="saveChanges()">
+                <span class="material-icons text-sm">save</span>
+                <span>Save</span>
+            </button>
+            <button class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2" (click)="openRefineDialog()">
+                <span>✨ Refine with AI</span>
+            </button>
+        </div>
     </div>
 
     <!-- Note: Syncfusion TreeGrid data source binding [dataSource]="tasks()" -->
-    <ejs-treegrid #treegrid [dataSource]="tasks()" [treeColumnIndex]="1" childMapping="children" 
+    <ejs-treegrid #treegrid [dataSource]="tasks()" [treeColumnIndex]="1" idMapping="id" parentIdMapping="parentId" 
                   [editSettings]="editSettings" [toolbar]="toolbar"
                   id="taskTreeGrid" height="100%">
         <e-columns>
             <e-column field="wbsId" headerText="WBS ID" width="100" textAlign="Left"></e-column>
             <e-column field="name" headerText="Task Name" width="250"></e-column>
-            <e-column field="duration" headerText="Duration" width="90" textAlign="Right"></e-column>
-            <e-column field="startDate" headerText="Start Date" width="130" format="yMd" textAlign="Right"></e-column>
-            <e-column field="endDate" headerText="End Date" width="130" format="yMd" textAlign="Right"></e-column>
+            
+            @for (col of dynamicColumns(); track col) {
+                <e-column [field]="'metadata.' + col" [headerText]="col" width="150" textAlign="Left"></e-column>
+            }
         </e-columns>
     </ejs-treegrid>
 

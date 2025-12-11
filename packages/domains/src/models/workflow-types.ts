@@ -26,20 +26,7 @@ export interface ProjectDocument {
     model_results?: ModelResults<TreeTask[]>[];
     comparison_result?: ComparisonResult;
     last_updated?: Date;
-}
-
-/**
- * Task document stored in tasks collection
- */
-export interface TaskDocument {
-    _id: string;
-    project_id: string;
-    name: string;
-    indent_level: number;
-    wbs_id: string;
-    order_index: number;
-    parent_id: string | null;
-    metadata?: Record<string, string | number>;
+    tree?: TreeTask[];
 }
 
 /**

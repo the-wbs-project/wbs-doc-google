@@ -47,7 +47,6 @@ export class AiCallService {
         Provide a brief summary of the comparison.`;
 
         const inputs = modelResults.map(r => JSON.stringify(r));
-
         const result = await this.openRouter.generateContent<ComparisonResult>({
             model: this.env.COMPARISON_MODEL,
             systemMessage,

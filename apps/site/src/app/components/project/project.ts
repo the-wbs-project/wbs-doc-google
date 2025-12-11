@@ -1,12 +1,13 @@
-import { Component, OnInit, ElementRef, ViewChild, ChangeDetectionStrategy, inject, signal, effect, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
-import { ApiService } from '../../services/api';
-import { ProjectData, ComparisonResult, ModelResults } from '@wbs/domains';
-import { TaskComparisonComponent } from '../task-comparison/task-comparison';
-import { TaskTreeGridComponent } from '../task-tree-grid/task-tree-grid';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ProjectDocument } from '@wbs/domains';
 // @ts-ignore
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
+import { ApiService } from '../../services/api';
+import { MessageService } from '../../services/message.service';
+import { TaskComparisonComponent } from '../task-comparison/task-comparison';
+import { TaskTreeGridComponent } from '../task-tree-grid/task-tree-grid';
 
 @Component({
   selector: 'app-project',
@@ -19,7 +20,9 @@ export class ProjectComponent implements OnInit { // trigger build
   @ViewChild('tableDiv') tableDiv!: ElementRef;
 
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private api = inject(ApiService);
+  private messageService = inject(MessageService);
 
   readonly projectId = signal<string | null>(null);
 
@@ -27,7 +30,7 @@ export class ProjectComponent implements OnInit { // trigger build
   statusClass = signal('loading');
   tabulator: any;
 
-  projectData = signal<ProjectData | undefined>(undefined);
+  projectData = signal<ProjectDocument | undefined>(undefined);
   activeTab = signal<'editor' | 'comparison' | 'legacy'>('comparison');
 
   constructor() {
@@ -37,8 +40,13 @@ export class ProjectComponent implements OnInit { // trigger build
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
       const id = params['id'];
+      const tab = params['tab'];
 
       this.projectId.set(id);
+
+      if (tab && (tab === 'editor' || tab === 'comparison' || tab === 'legacy')) {
+        this.activeTab.set(tab);
+      }
 
       if (id) {
         this.loadProject();
@@ -58,21 +66,24 @@ export class ProjectComponent implements OnInit { // trigger build
       next: (data) => {
         this.projectData.set(data);
 
-        if (data.tree || data.modelResults) {
+        if (data.model_results) {
           this.status.set('Project loaded successfully.');
           this.statusClass.set('success');
 
-          // Determine starting tab
-          // If we have AI model results, default to comparison
-          if (data.modelResults && data.modelResults.length > 0) {
-            this.activeTab.set('comparison');
+          // Determine starting tab ONLY if not already set via URL
+          if (!this.route.snapshot.queryParams['tab']) {
+            // If we have AI model results, default to comparison
+            if (data.model_results && data.model_results.length > 0) {
+              this.switchTab('comparison');
+            }
+            // If we have no model results but we have a tree (e.g. MPP file), default to editor
+            else if (data.tree && data.tree.length > 0) {
+              this.switchTab('editor');
+            }
           }
-          // If we have no model results but we have a tree (e.g. MPP file), default to editor
-          else if (data.tree && data.tree.length > 0) {
-            this.activeTab.set('editor');
-          }
+
           // Fallback or existing logic for legacy tab
-          else if (this.activeTab() === 'legacy' && data.tree) {
+          if (this.activeTab() === 'legacy' && data.tree) {
             setTimeout(() => this.renderTable(data.tree!), 0);
           }
         } else {
@@ -89,6 +100,15 @@ export class ProjectComponent implements OnInit { // trigger build
 
   switchTab(tab: 'editor' | 'comparison' | 'legacy') {
     this.activeTab.set(tab);
+
+    // Update URL without reloading
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: tab },
+      queryParamsHandling: 'merge', // Merge with existing params (like id)
+      replaceUrl: true // Don't create new history entry for every tab switch? Maybe prefer push? User requirement implies bookmarking, usually push is better for navigation habits, but for tabs often replace. Let's use replaceUrl: false (default) to allow back button.
+    });
+
     if (tab === 'legacy' && this.projectData()?.tree) {
       setTimeout(() => {
         if (this.tableDiv) this.renderTable(this.projectData()!.tree!);
@@ -106,15 +126,32 @@ export class ProjectComponent implements OnInit { // trigger build
     }
   }
 
-  promoteModel(modelName: string) {
-    if (!confirm(`Are you sure you want to promote the results from ${modelName} to the main grid? This will overwrite the current main grid data.`)) return;
+  onSaveProject(tasks: any[]) {
+    const id = this.projectId();
+    if (!id) return;
+
+    this.projectData.update(current => current ? { ...current, tree: tasks } : current);
+
+    this.api.updateProject(id, { tree: tasks }).subscribe({
+      next: () => {
+        this.messageService.alert('Project saved successfully!', 'Success', 'success');
+      },
+      error: (err) => {
+        console.error(err);
+        this.messageService.alert(`Failed to save project: ${err.message}`, 'Error', 'error');
+      }
+    });
+  }
+
+  async promoteModel(modelName: string) {
+    if (!await this.messageService.confirm(`Are you sure you want to promote the results from ${modelName} to the main grid? This will overwrite the current main grid data.`)) return;
 
     const id = this.projectId();
     if (!id) return;
 
     this.api.promoteModel(id, modelName).subscribe({
       next: () => {
-        alert(`Successfully promoted ${modelName} to the main grid.`);
+        this.messageService.alert(`Successfully promoted ${modelName} to the main grid.`, 'Success', 'success');
         this.projectData.update(current => {
           // We can optimistically update or reload.
           // Since backend logic will update the tree, reloading is safer to get the correct tree structure.
@@ -123,7 +160,7 @@ export class ProjectComponent implements OnInit { // trigger build
         this.loadProject(); // Reload to get the new tree
         this.switchTab('editor'); // Switch to editor view
       },
-      error: (err) => alert(`Failed to promote model: ${err.message}`)
+      error: (err) => this.messageService.alert(`Failed to promote model: ${err.message}`, 'Error', 'error')
     });
   }
 
