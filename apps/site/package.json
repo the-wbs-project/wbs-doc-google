@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "dev": "ng serve --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "sync": "rm -rf .angular && pnpm dlx syncfusion-license activate"
   },
   "prettier": {
     "printWidth": 100,
@@ -49,11 +50,11 @@
     "@syncfusion/ej2-angular-popups": "^30.2.4",
     "@syncfusion/ej2-angular-splitbuttons": "^30.2.4",
     "@syncfusion/ej2-angular-treegrid": "^30.2.4",
-    "@syncfusion/ej2-base": "^30.2.4",
+    "@syncfusion/ej2-base": "^30.2.6",
+    "@wbs/domains": "workspace:*",
     "rxjs": "~7.8.0",
     "tabulator-tables": "^6.3.1",
-    "tslib": "^2.3.0",
-    "@wbs/domains": "workspace:*"
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@angular/build": "^21.0.2",

@@ -8,7 +8,7 @@ export class AzureService {
         this.env = env;
     }
 
-    async extractMarkdown(fileKey: string, fileName?: string): Promise<string> {
+    async extractMarkdown(fileKey: string, fileName?: string): Promise<unknown> {
         // Use fileName for caching if available (stable across runs), otherwise fallback to fileKey
         const cacheIdentifier = fileName || fileKey;
         const cacheKey = `azure-pdf-md:${cacheIdentifier}`;
@@ -48,10 +48,12 @@ export class AzureService {
             }
 
             // The service returns the markdown content directly
-            const markdown = await response.text();
+            const markdown: { content?: string } = await response.json();
+
+            delete markdown.content;
 
             // Step 4: Cache result (TTL 7 days = 604800 seconds)
-            await this.env.KV_DATA.put(cacheKey, markdown, { expirationTtl: 604800 });
+            await this.env.KV_DATA.put(cacheKey, JSON.stringify(markdown), { expirationTtl: 604800 });
 
             return markdown;
 

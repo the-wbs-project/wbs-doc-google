@@ -10,6 +10,8 @@
     "dev:all": "turbo run dev",
     "lint:all": "turbo run lint",
     "test:all": "turbo run test",
+    "clean:cache": "rm -rf node_modules/.cache && turbo daemon clean",
+    "clean:all": "pnpm clean:cache && pnpm clean && rm -rf node_modules/.pnpm",
     "sync": "cd apps/site && rm -rf .angular && npx syncfusion-license activate"
   },
   "devDependencies": {

@@ -20,6 +20,7 @@
     "@google/genai": "^1.31.0",
     "@wbs/domains": "workspace:*",
     "hono": "^4.10.7",
+    "langfuse": "^3.38.6",
     "mongodb": "^6.5.0",
     "nanoid": "^5.1.6",
     "openai": "^6.10.0",

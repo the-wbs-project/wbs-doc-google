@@ -96,7 +96,7 @@ importers:
         specifier: ^30.2.4
         version: 30.2.4
       '@syncfusion/ej2-base':
-        specifier: ^30.2.4
+        specifier: ^30.2.6
         version: 30.2.6
       '@wbs/domains':
         specifier: workspace:*
@@ -141,9 +141,6 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.71.2
         version: 0.71.2(zod@4.1.13)
-      '@cloudflare/containers':
-        specifier: ^0.0.30
-        version: 0.0.30
       '@google/genai':
         specifier: ^1.31.0
         version: 1.31.0(@modelcontextprotocol/sdk@1.24.0(zod@4.1.13))
@@ -153,6 +150,9 @@ importers:
       hono:
         specifier: ^4.10.7
         version: 4.10.7
+      langfuse:
+        specifier: ^3.38.6
+        version: 3.38.6
       mongodb:
         specifier: ^6.5.0
         version: 6.21.0(socks@2.8.7)
@@ -536,9 +536,6 @@ packages:
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
-
-  '@cloudflare/containers@0.0.30':
-    resolution: {integrity: sha512-i148xBgmyn/pje82ZIyuTr/Ae0BT/YWwa1/GTJcw6DxEjUHAzZLaBCiX446U9OeuJ2rBh/L/9FIzxX5iYNt1AQ==}
 
   '@cloudflare/kv-asset-handler@0.4.1':
     resolution: {integrity: sha512-Nu8ahitGFFJztxUml9oD/DLb7Z28C8cd8F46IVQ7y5Btz575pvMY8AqZsXkX7Gds29eCKdMgIHjIvzskHgPSFg==}
@@ -3209,6 +3206,14 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
+  langfuse-core@3.38.6:
+    resolution: {integrity: sha512-EcZXa+DK9FJdi1I30+u19eKjuBJ04du6j2Nybk19KKCuraLczg/ppkTQcGvc4QOk//OAi3qUHrajUuV74RXsBQ==}
+    engines: {node: '>=18'}
+
+  langfuse@3.38.6:
+    resolution: {integrity: sha512-mtwfsNGIYvObRh+NYNGlJQJDiBN+Wr3Hnr++wN25mxuOpSTdXX+JQqVCyAqGL5GD2TAXRZ7COsN42Vmp9krYmg==}
+    engines: {node: '>=18'}
+
   lightningcss-android-arm64@1.30.2:
     resolution: {integrity: sha512-BH9sEdOCahSgmkVhBLeU7Hc9DWeZ1Eb6wNS6Da8igvUwAe0sqROHddIlvU06q3WyXVEOYDZ6ykBZQnjTbmo4+A==}
     engines: {node: '>= 12.0.0'}
@@ -3459,6 +3464,10 @@ packages:
 
   msgpackr@1.11.5:
     resolution: {integrity: sha512-UjkUHN0yqp9RWKy0Lplhh+wlpdt9oQBYgULZOiFhV3VclSF1JnSQWZ5r9gORQlNYaUKQoR8itv7g7z1xDDuACA==}
+
+  mustache@4.2.0:
+    resolution: {integrity: sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ==}
+    hasBin: true
 
   mute-stream@2.0.0:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
@@ -4910,8 +4919,6 @@ snapshots:
 
   '@biomejs/cli-win32-x64@2.3.8':
     optional: true
-
-  '@cloudflare/containers@0.0.30': {}
 
   '@cloudflare/kv-asset-handler@0.4.1':
     dependencies:
@@ -7288,6 +7295,14 @@ snapshots:
 
   kleur@4.1.5: {}
 
+  langfuse-core@3.38.6:
+    dependencies:
+      mustache: 4.2.0
+
+  langfuse@3.38.6:
+    dependencies:
+      langfuse-core: 3.38.6
+
   lightningcss-android-arm64@1.30.2:
     optional: true
 
@@ -7547,6 +7562,8 @@ snapshots:
     optionalDependencies:
       msgpackr-extract: 3.0.3
     optional: true
+
+  mustache@4.2.0: {}
 
   mute-stream@2.0.0: {}
 

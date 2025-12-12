@@ -20,6 +20,9 @@ declare namespace Cloudflare {
     INGESTION_WORKFLOW: Workflow<Parameters<import("./src/index").WbsWorkflow['run']>[0]['payload']>;
     MPP_WORKFLOW: Workflow<Parameters<import("./src/index").MppWorkflow['run']>[0]['payload']>;
     REFINEMENT_WORKFLOW: Workflow<Parameters<import("./src/index").RefineWorkflow['run']>[0]['payload']>;
+    LANGFUSE_PUBLIC_KEY: string;
+    LANGFUSE_SECRET_KEY: string;
+    LANGFUSE_HOST: string;
   }
 }
 interface Env extends Cloudflare.Env { }
