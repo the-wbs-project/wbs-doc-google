@@ -7,6 +7,6 @@ export interface ComparedTask {
     wbsId: string;
     name: string;
     status: 'pass' | 'needs_review';
-    sources: string[];
+    sources: { model: string, taskId: string }[];
     discrepancies?: string;
 }

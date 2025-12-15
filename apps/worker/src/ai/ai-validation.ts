@@ -95,7 +95,16 @@ export const GEMINI_COMPARISON_SCHEMA = {
                     wbsId: { type: "STRING" },
                     name: { type: "STRING" },
                     status: { type: "STRING", enum: ["pass", "needs_review"] },
-                    sources: { type: "ARRAY", items: { type: "STRING" } },
+                    sources: {
+                        type: "ARRAY", items: {
+                            type: "OBJECT",
+                            properties: {
+                                model: { type: "STRING" },
+                                taskId: { type: "STRING" },
+                            },
+                            required: ["model", "taskId"]
+                        }
+                    },
                     discrepancies: { type: "STRING" }
                 },
                 required: ["wbsId", "name", "status", "sources"]

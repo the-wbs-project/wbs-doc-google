@@ -4,6 +4,7 @@ import { AIService } from '../ai';
 import { WbsWorkflowParams } from '../models/wbs-workflow-params';
 import { ProjectService } from '../services/project.service';
 import { sortTasksByWbsId } from '../utils/treeUtils';
+import { generateId } from '../utils/generate-id';
 
 export class WbsWorkflow extends WorkflowEntrypoint<Env, WbsWorkflowParams> {
     async run(event: WorkflowEvent<WbsWorkflowParams>, step: WorkflowStep) {
@@ -59,6 +60,10 @@ export class WbsWorkflow extends WorkflowEntrypoint<Env, WbsWorkflowParams> {
 
                 for (const result of allResults) {
                     if (!result.results) continue;
+
+                    for (const task of result.results) {
+                        task.id = generateId();
+                    }
 
                     result.results = sortTasksByWbsId(result.results);
                 }

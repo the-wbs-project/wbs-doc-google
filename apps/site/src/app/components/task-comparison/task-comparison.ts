@@ -55,20 +55,22 @@ export class TaskComparisonComponent { // trigger build
                 level: level
             };
 
-            names.forEach(modelName => {
+            for (const modelName of names) {
                 const result = results?.find(r => r.model === modelName);
-                if (result) {
-                    const task = result.results.find(t => t.wbsId === comparedTask.wbsId);
-                    if (task) {
-                        row.models[modelName] = task;
-                    } else {
-                        const fuzzy = result.results.find(t => t.name === comparedTask.name);
-                        if (fuzzy) {
-                            row.models[modelName] = fuzzy;
-                        }
+                const taskId = comparedTask.sources.find(s => s.model === modelName)?.taskId;
+
+                if (!result || !taskId) continue;
+
+                const task = result.results.find(t => t.id === taskId);
+                if (task) {
+                    row.models[modelName] = task;
+                } else {
+                    const fuzzy = result.results.find(t => t.name === comparedTask.name);
+                    if (fuzzy) {
+                        row.models[modelName] = fuzzy;
                     }
                 }
-            });
+            }
             return row;
         });
     });

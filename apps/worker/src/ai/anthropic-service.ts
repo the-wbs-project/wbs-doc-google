@@ -1,7 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk";
 import { MessageParam } from "@anthropic-ai/sdk/resources";
 import { NonRetryableError } from "cloudflare:workflows";
-import { z } from "zod";
 import { AiMessage } from "../models/ai-message";
 import { IAIProvider } from "./interface";
 
@@ -67,10 +66,6 @@ export class AnthropicService implements IAIProvider {
             if (e instanceof NonRetryableError) throw e;
             if (e instanceof Anthropic.APIError) {
                 throw new Error(`Anthropic API failed: ${e.status} ${e.message}`);
-            }
-            if (e instanceof z.ZodError) {
-                console.error("Anthropic Zod Validation Failed", e);
-                throw new NonRetryableError("Anthropic response failed Zod validation");
             }
             console.error("Failed to parse Anthropic JSON or API error", e);
             throw new NonRetryableError("Invalid JSON returned by Anthropic or API Error");

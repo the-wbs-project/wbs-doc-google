@@ -1,32 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
-import { AiTask, ComparisonResult, ModelResults } from "@wbs/domains";
 import { NonRetryableError } from "cloudflare:workflows";
-import { z } from "zod";
 import { AiMessage } from "../models/ai-message";
+import { ResponseSchema } from "./ai-validation";
 import { IAIProvider } from "./interface";
-import { ComparisonResponseSchema, ResponseSchema } from "./ai-validation";
-
-const GeminiComparisonSchema = {
-    type: "OBJECT",
-    properties: {
-        tasks: {
-            type: "ARRAY",
-            items: {
-                type: "OBJECT",
-                properties: {
-                    wbsId: { type: "STRING" },
-                    name: { type: "STRING" },
-                    status: { type: "STRING", enum: ["pass", "needs_review"] },
-                    sources: { type: "ARRAY", items: { type: "STRING" } },
-                    discrepancies: { type: "STRING" }
-                },
-                required: ["wbsId", "name", "status", "sources"]
-            }
-        },
-        summary: { type: "STRING" }
-    },
-    required: ["tasks", "summary"]
-};
 
 export class GeminiService implements IAIProvider {
     private readonly client: GoogleGenAI;
@@ -81,7 +57,7 @@ export class GeminiService implements IAIProvider {
                 });
             }
 
-            const response = await this.getClient(this.model).models.generateContent({
+            const result = await this.getClient(this.model).models.generateContentStream({
                 model: this.model,
                 contents,
                 config: {
@@ -90,18 +66,12 @@ export class GeminiService implements IAIProvider {
                 }
             });
 
-            let rawText: string | null = null;
-
-            if (response.text) {
-                if (typeof response.text === 'string') {
-                    rawText = response.text;
-                } else if (typeof response.text === 'function') {
-                    rawText = (response.text as any)();
+            let rawText = '';
+            for await (const chunk of result) {
+                const chunkText = chunk.text;
+                if (chunkText) {
+                    rawText += chunkText;
                 }
-            }
-
-            if (!rawText && response.candidates && response.candidates.length > 0) {
-                rawText = response.candidates[0].content?.parts?.[0]?.text || null;
             }
 
             if (!rawText) throw new NonRetryableError("No content in Gemini response");
@@ -110,10 +80,7 @@ export class GeminiService implements IAIProvider {
 
         } catch (e: any) {
             if (e instanceof NonRetryableError) throw e;
-            if (e instanceof z.ZodError) {
-                console.error("Gemini Zod Validation Failed", e);
-                throw new NonRetryableError("Gemini response failed Zod validation");
-            }
+
             console.error("Failed to parse Gemini JSON or API error", e);
             throw new NonRetryableError("Invalid JSON returned by Gemini or API Error");
         }
@@ -143,18 +110,18 @@ Return the modified list of tasks in the same JSON structure. Maintain the hiera
         };
 
         try {
-            const response = await this.client.models.generateContent({
+            const result = await this.getClient(this.model).models.generateContentStream({
                 model: this.model,
                 contents: contents as any,
                 config: config
             });
 
-            let rawText: string | null = null;
-            if (response.text) {
-                rawText = typeof response.text === 'string' ? response.text : (response.text as any)();
-            }
-            if (!rawText && response.candidates && response.candidates.length > 0) {
-                rawText = response.candidates[0].content?.parts?.[0]?.text || null;
+            let rawText = '';
+            for await (const chunk of result) {
+                const chunkText = chunk.text;
+                if (chunkText) {
+                    rawText += chunkText;
+                }
             }
 
             if (!rawText) throw new NonRetryableError("No content in Gemini Refinement response");
@@ -211,7 +178,7 @@ Return the modified list of tasks in the same JSON structure. Maintain the hiera
         };
 
         try {
-            const response = await this.getClient(model).models.generateContent({
+            const result = await this.getClient(model).models.generateContentStream({
                 model,
                 config: {
                     ...config,
@@ -220,12 +187,12 @@ Return the modified list of tasks in the same JSON structure. Maintain the hiera
                 contents
             });
 
-            let rawText: string | null = null;
-            if (response.text) {
-                rawText = typeof response.text === 'string' ? response.text : (response.text as any)();
-            }
-            if (!rawText && response.candidates && response.candidates.length > 0) {
-                rawText = response.candidates[0].content?.parts?.[0]?.text || null;
+            let rawText = '';
+            for await (const chunk of result) {
+                const chunkText = chunk.text;
+                if (chunkText) {
+                    rawText += chunkText;
+                }
             }
 
             if (!rawText) throw new NonRetryableError("No content in Gemini Standardization response");

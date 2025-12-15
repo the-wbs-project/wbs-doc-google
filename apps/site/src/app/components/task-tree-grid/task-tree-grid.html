@@ -12,8 +12,8 @@
         </div>
     </div>
 
-    <!-- Note: Syncfusion TreeGrid data source binding [dataSource]="tasks()" -->
-    <ejs-treegrid #treegrid [dataSource]="tasks()" [treeColumnIndex]="1" idMapping="id" parentIdMapping="parentId" 
+    <!-- Note: Syncfusion TreeGrid data source binding [dataSource]="gridDataSource()" -->
+    <ejs-treegrid #treegrid [dataSource]="gridDataSource()" [treeColumnIndex]="1" idMapping="id" parentIdMapping="parentId" 
                   [editSettings]="editSettings" [toolbar]="toolbar"
                   id="taskTreeGrid" height="100%">
         <e-columns>
