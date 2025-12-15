@@ -45,19 +45,22 @@ export class WbsWorkflow extends WorkflowEntrypoint<Env, WbsWorkflowParams> {
             }
 
             // Step 2: Analyze full document with Gemini
-            const modelsToRun = event.payload.models ?? this.env.AI_MODELS.split(',');
+            const modelsToRun = [this.env.AI_ANTHROPIC_MODEL, this.env.AI_OPENAI_MODEL, this.env.AI_GOOGLE_MODEL];
 
             const modelResults = await step.do(`analyze-document`, async () => {
                 if (!project.markdown_content) {
                     throw new NonRetryableError('Markdown content not found after extraction');
                 }
 
-                const allResults = await aiService.aiCalls.analyzeDocument(modelsToRun, project.markdown_content);
+                const allResults = await aiService.aiCalls.analyzeDocument(modelsToRun, JSON.stringify(project.markdown_content));
+
+                for (const result of allResults)
+                    console.log(`${result.model} (${result.results?.length}): ${JSON.stringify(result.results).substring(0, 100)}`);
 
                 for (const result of allResults) {
-                    if (result.results) {
-                        result.results = sortTasksByWbsId(result.results);
-                    }
+                    if (!result.results) continue;
+
+                    result.results = sortTasksByWbsId(result.results);
                 }
 
                 return allResults;

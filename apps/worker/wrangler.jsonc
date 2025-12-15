@@ -47,10 +47,10 @@
         }
     ],
     "vars": {
+        "AI_ANTHROPIC_MODEL": "claude-opus-4-5",
+        "AI_OPENAI_MODEL": "gpt-5.2",
+        "AI_GOOGLE_MODEL": "gemini-3-pro-preview",
         "LANGFUSE_HOST": "https://us.cloud.langfuse.com",
-        "PROMPTHUB_PROJECT_ID": "REPLACE_WITH_PROJECT_ID",
-        "AI_MODELS": "anthropic/claude-opus-4.5,openai/gpt-5.1,google/gemini-3-pro-preview",
-        "COMPARISON_MODEL": "google/gemini-3-pro-preview",
         "AI_GATEWAY_URL": "https://gateway.ai.cloudflare.com/v1/004dc1af737b22a8aa83b3550fa9b9d3/pm-empower"
     }
 }

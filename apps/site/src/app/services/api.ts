@@ -40,7 +40,4 @@ export class ApiService {
   updateProject(projectId: string, data: Partial<ProjectDocument>): Observable<{ success: boolean }> {
     return this.http.put<{ success: boolean }>(`/api/projects/${projectId}`, data);
   }
-  getModelInfo(modelId: string): Observable<{ id: string, name: string }> {
-    return this.http.get<{ id: string, name: string }>(`/api/models/${encodeURIComponent(modelId)}`);
-  }
 }

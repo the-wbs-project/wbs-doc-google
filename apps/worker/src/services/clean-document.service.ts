@@ -1,6 +1,8 @@
 import type { CleanDocument, AnalyzeResultData } from "@wbs/domains";
 
 export function toCleanDocument(document: AnalyzeResultData): CleanDocument {
+    delete document.content;
+
     return {
         ...document,
         pages: document.pages.map(p => ({

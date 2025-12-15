@@ -1,14 +1,10 @@
 import { ComparisonResult, ModelResults, TreeTask } from "@wbs/domains";
-import { OpenRouterService } from "./openrouter-service";
-import { transformTasks } from "../utils/transformers";
-import { COMPARISON_SCHEMA, TASK_RESULTS_SCHEMA } from "./json_schemas";
+import { GEMINI_COMPARISON_SCHEMA, GEMINI_TASK_SCHEMA } from "./ai-validation";
+import { AIService } from "./index";
 import { LangfuseService } from "./langfuse-service";
 
 export class AiCallService {
-    constructor(
-        private readonly env: Env,
-        private readonly prompts: LangfuseService,
-        private readonly openRouter: OpenRouterService) { }
+    constructor(private readonly prompts: LangfuseService, private readonly ai: AIService) { }
 
     async analyzeDocument(models: string[], markdownContent: string): Promise<ModelResults<TreeTask[]>[]> {
         const promises: Promise<ModelResults<TreeTask[]>>[] = [];
@@ -25,18 +21,19 @@ export class AiCallService {
 
         const promptObj = await this.prompts.getPrompt('process-document', undefined, 'latest');
         const prompt = promptObj.compile({ markdownContent }) as unknown as { role: string; content: string }[];
+        const aiService = this.ai.getService(model);
 
-        const result = await this.openRouter.generateTemplatedContent<TreeTask[]>({
-            model,
+        const textResults = await aiService.generateContent({
             prompt,
             promptName: 'process-document',
-            config: promptObj.config as Record<string, unknown>,
-            transformer: transformTasks,
+            maxTokens: this.getMaxTokens(promptObj.config as any)
         });
+
+        const results = await this.ai.gemini.standardize<TreeTask[]>(textResults, GEMINI_TASK_SCHEMA);
 
         console.log(`Finished model ${model}`);
 
-        return result;
+        return { model, results };
     }
 
     async compareResults(modelResults: ModelResults<TreeTask[]>[]): Promise<ComparisonResult> {
@@ -45,28 +42,33 @@ export class AiCallService {
         const promptObj = await this.prompts.getPrompt('compare-results', undefined, 'latest');
         const prompt = promptObj.compile({ inputs: JSON.stringify(modelResults) }) as unknown as { role: string; content: string }[];
 
-        const result = await this.openRouter.generateTemplatedContent<ComparisonResult>({
-            model: this.env.COMPARISON_MODEL,
-            promptName: 'compare-results',
+        const textResults = await this.ai.openai.generateContent({
             prompt,
-            config: promptObj.config as Record<string, unknown>
+            promptName: 'compare-results',
+            maxTokens: this.getMaxTokens(promptObj.config as any)
         });
 
         console.log('Finished Comparison...');
 
-        return result.results;
+        return await this.ai.gemini.standardize<ComparisonResult>(textResults, GEMINI_COMPARISON_SCHEMA);
     }
 
     async refineTasks(data: ModelResults<TreeTask[]>, instructions: string): Promise<ModelResults<TreeTask[]>> {
         const systemMessage = "You are a project management expert. Refine the tasks based on the instructions.";
         const userMessage = `Refine the following tasks based on the instructions.`;
 
-        return await this.openRouter.generateContent<TreeTask[]>({
-            model: data.model,
-            systemMessage,
-            userMessages: [userMessage, instructions, JSON.stringify(data.results)],
-            transformer: transformTasks,
-            jsonSchema: TASK_RESULTS_SCHEMA
+        const aiService = this.ai.getService(data.model);
+
+        const text = await aiService.generateContent({
+            prompt: [{ role: 'system', content: systemMessage }, { role: 'user', content: userMessage }, { role: 'user', content: instructions }, { role: 'user', content: JSON.stringify(data.results) }],
+            promptName: 'refine-tasks',
+            //maxTokens: this.getMaxTokens(promptObj.config as any)
         });
+
+        return { model: data.model, results: [...data.results] };
+    }
+
+    private getMaxTokens(config: Record<string, unknown>): number | undefined {
+        return config['maxTokens'] as number | undefined;
     }
 }

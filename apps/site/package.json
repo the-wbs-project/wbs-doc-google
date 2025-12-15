@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "dev": "ng serve --configuration development",
+    "start": "node scripts/update-license.js && ng serve",
+    "build": "node scripts/update-license.js && ng build",
+    "watch": "node scripts/update-license.js && ng build --watch --configuration development",
+    "dev": "node scripts/update-license.js && ng serve --configuration development",
     "test": "ng test",
     "sync": "rm -rf .angular && pnpm dlx syncfusion-license activate"
   },

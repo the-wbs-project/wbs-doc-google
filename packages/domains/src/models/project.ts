@@ -1,4 +1,4 @@
-import { CleanDocument } from "./clean-document";
+import { AnalyzeResultData } from "./analyze-result";
 import { ModelResults } from "./model-results";
 import { ComparisonResult } from "./task-comparison";
 import { TreeTask } from "./tree-task";
@@ -11,7 +11,7 @@ export interface ProjectDocument {
     _id: string;
     name: string;
     file_key: string;
-    markdown_content?: CleanDocument;
+    markdown_content?: AnalyzeResultData;
     model_results?: ModelResults<TreeTask[]>[];
     comparison_result?: ComparisonResult;
     last_updated?: Date;

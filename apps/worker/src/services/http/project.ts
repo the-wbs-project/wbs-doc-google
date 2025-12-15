@@ -173,28 +173,3 @@ export async function updateProject(ctx: Context): Promise<Response> {
         return ctx.text(`Update Project Error: ${e instanceof Error ? e.message : String(e)}`, 500);
     }
 }
-
-export async function getModelInfo(ctx: Context): Promise<Response> {
-    const modelId = ctx.req.param('modelId');
-    try {
-        const modelInfo = await ctx.env.KV_DATA.get(`model_info:${modelId}`);
-
-        if (modelInfo) {
-            return ctx.json(JSON.parse(modelInfo));
-        }
-
-        const apiService = new AIService(ctx.env);
-        const modelDetails = await apiService.openrouter.getModelDetails(modelId);
-
-        if (!modelDetails) {
-            return ctx.text('Model info not found', 404);
-        }
-
-        await ctx.env.KV_DATA.put(`model_info:${modelId}`, JSON.stringify(modelDetails));
-
-        return ctx.json(modelDetails);
-    } catch (e) {
-        console.error("Get Model Info Error", e);
-        return ctx.text(`Get Model Info Error: ${e instanceof Error ? e.message : String(e)}`, 500);
-    }
-}

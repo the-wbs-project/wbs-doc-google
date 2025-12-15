@@ -1,6 +1,5 @@
 
-import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal, effect, untracked } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy, input, output, inject, computed, signal } from '@angular/core';
 import { ComparisonResult, ModelResults, TreeTask } from '@wbs/domains';
 import { ApiService } from '../../services/api';
 import { MessageService } from '../../services/message.service';
@@ -34,47 +33,9 @@ export class TaskComparisonComponent { // trigger build
 
     readonly activeMenu = signal<string | null>(null);
     readonly isRerunning = signal(false);
-    readonly modelNameMapping = signal<Record<string, string>>({});
 
-    constructor() {
-        effect(() => {
-            const results = this.modelResults();
-            const currentMapping = untracked(this.modelNameMapping);
-            const missingModels = results
-                .map(r => r.model)
-                .filter(m => !currentMapping[m]);
-
-            if (missingModels.length > 0) {
-                missingModels.forEach(modelId => {
-                    this.api.getModelInfo(modelId).subscribe({
-                        next: (info) => {
-                            this.modelNameMapping.update(mapping => ({ ...mapping, [modelId]: info.name }));
-                        },
-                        error: () => {
-                            // fallback to ID if fetch fails, or just leave it
-                        }
-                    });
-                });
-            }
-        }, { allowSignalWrites: true });
-    }
-
-    toggleMenu(modelName: string) {
-        if (this.activeMenu() === modelName) {
-            this.activeMenu.set(null);
-        } else {
-            this.activeMenu.set(modelName);
-        }
-    }
-
-    closeMenu() {
-        this.activeMenu.set(null);
-    }
-
-
-    modelNames = computed(() => this.modelResults()?.map(r => r.model) || []);
-
-    rows = computed(() => {
+    readonly modelNames = computed(() => this.modelResults()?.map(r => r.model) || []);
+    readonly rows = computed(() => {
         const comp = this.comparison();
         const results = this.modelResults();
         const names = this.modelNames();
@@ -111,6 +72,18 @@ export class TaskComparisonComponent { // trigger build
             return row;
         });
     });
+
+    toggleMenu(modelName: string) {
+        if (this.activeMenu() === modelName) {
+            this.activeMenu.set(null);
+        } else {
+            this.activeMenu.set(modelName);
+        }
+    }
+
+    closeMenu() {
+        this.activeMenu.set(null);
+    }
 
     async deleteModel(modelName: string) {
         if (!await this.messageService.confirm(`Are you sure you want to remove the results for ${modelName}?`)) return;

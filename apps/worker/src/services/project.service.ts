@@ -24,9 +24,15 @@ export class ProjectService {
         );
     }
 
-    async getProject(id: string): Promise<WithId<ProjectDocument> | null> {
+    async getProject(id: string): Promise<ProjectDocument | null> {
         const db = await this.getProjectDb();
-        return db.collection<ProjectDocument>('projects').findOne({ _id: id } as Filter<ProjectDocument>);
+        const data = await db.collection<ProjectDocument>('projects').findOne({ _id: id } as Filter<ProjectDocument>);
+
+        if (!data) return null;
+
+        data._id = data._id.toString();
+
+        return data;
     }
 
     async upsertModelResult(projectId: string, result: ModelResults<TreeTask[]>) {

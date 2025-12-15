@@ -7,14 +7,16 @@ declare namespace Cloudflare {
   }
   interface Env {
     KV_DATA: KVNamespace;
-    PROMPTHUB_PROJECT_ID: "REPLACE_WITH_PROJECT_ID";
-    AI_MODELS: "anthropic/claude-opus-4.5,openai/gpt-5.1,google/gemini-3-pro-preview";
-    COMPARISON_MODEL: "google/gemini-3-pro-preview";
     AI_GATEWAY_URL: "https://gateway.ai.cloudflare.com/v1/004dc1af737b22a8aa83b3550fa9b9d3/pm-empower";
-    PROMPTHUB_API_KEY: string;
     MONGO_URI: string;
     OPENROUTER_API_KEY: string;
-    TUNNEL_URL: string;
+    AI_GATEWAY_URL: string;
+    AI_ANTHROPIC_KEY: string;
+    AI_ANTHROPIC_MODEL: string;
+    AI_GOOGLE_KEY: string;
+    AI_GOOGLE_MODEL: string;
+    AI_OPENAI_KEY: string;
+    AI_OPENAI_MODEL: string;
     FILES_BUCKET: R2Bucket;
     WBS_MPP_SERVICE: Fetcher /* wbs-mpp-service */;
     INGESTION_WORKFLOW: Workflow<Parameters<import("./src/index").WbsWorkflow['run']>[0]['payload']>;

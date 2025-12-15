@@ -1,4 +1,4 @@
-import { deleteModelResult, getModelInfo, getProject, promoteModel, refineProject, rerunModel, updateProject } from "./project";
+import { deleteModelResult, getProject, promoteModel, refineProject, rerunModel, updateProject } from "./project";
 import { workflowStart, workflowStatus } from "./workflow";
 
 export const HTTP = {
@@ -9,6 +9,5 @@ export const HTTP = {
     refineProject: refineProject,
     rerunModel: rerunModel,
     promoteModel: promoteModel,
-    updateProject: updateProject,
-    getModelInfo: getModelInfo
+    updateProject: updateProject
 };

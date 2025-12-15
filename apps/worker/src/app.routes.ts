@@ -7,7 +7,6 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('*', cors());
 
 // API Routes
-app.get('/api/models/:modelId', HTTP.getModelInfo);
 app.post('/api/workflow/start', HTTP.workflowStart);
 app.get('/api/workflow/status/:id', HTTP.workflowStatus);
 app.get('/api/projects/:projectId', HTTP.getProject);

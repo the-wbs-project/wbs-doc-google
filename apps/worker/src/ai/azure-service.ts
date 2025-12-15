@@ -1,4 +1,5 @@
 
+import { AnalyzeResultData } from "@wbs/domains";
 import { NonRetryableError } from "cloudflare:workflows";
 
 export class AzureService {
@@ -8,13 +9,13 @@ export class AzureService {
         this.env = env;
     }
 
-    async extractMarkdown(fileKey: string, fileName?: string): Promise<unknown> {
+    async extractMarkdown(fileKey: string, fileName?: string): Promise<AnalyzeResultData> {
         // Use fileName for caching if available (stable across runs), otherwise fallback to fileKey
         const cacheIdentifier = fileName || fileKey;
         const cacheKey = `azure-pdf-md:${cacheIdentifier}`;
 
         // Step 0: Check KV Cache
-        const cached = await this.env.KV_DATA.get(cacheKey);
+        const cached = await this.env.KV_DATA.get<AnalyzeResultData>(cacheKey, { type: 'json' });
         if (cached) {
             console.log("Returning cached Azure PDF result for " + fileKey);
             return cached;
@@ -35,10 +36,7 @@ export class AzureService {
 
         // Step 3: Call Azure Service
         try {
-            const response = await fetch(azureServiceUrl, {
-                method: 'POST',
-                body: formData,
-            });
+            const response = await fetch(azureServiceUrl, { method: 'POST', body: formData });
 
             console.log("AZURE PDF SERVICE RESPONSE: " + response.status);
 
@@ -48,14 +46,13 @@ export class AzureService {
             }
 
             // The service returns the markdown content directly
-            const markdown: { content?: string } = await response.json();
-
-            delete markdown.content;
+            const results: { link: string, markdown: AnalyzeResultData } = await response.json();
+            //const document = toCleanDocument(results.markdown);
 
             // Step 4: Cache result (TTL 7 days = 604800 seconds)
-            await this.env.KV_DATA.put(cacheKey, JSON.stringify(markdown), { expirationTtl: 604800 });
+            await this.env.KV_DATA.put(cacheKey, JSON.stringify(results.markdown), { expirationTtl: 604800 });
 
-            return markdown;
+            return results.markdown;
 
         } catch (e: any) {
             console.error("Azure Service Fetch Error", e);
