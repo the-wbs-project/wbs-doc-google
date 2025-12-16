@@ -24,6 +24,15 @@ export class ProjectService {
         );
     }
 
+    async getAllProjects(): Promise<Partial<ProjectDocument>[]> {
+        const db = await this.getProjectDb();
+        return db.collection<ProjectDocument>('projects')
+            .find({})
+            .project({ name: 1, file_key: 1, last_updated: 1 })
+            .sort({ last_updated: -1 })
+            .toArray();
+    }
+
     async getProject(id: string): Promise<ProjectDocument | null> {
         const db = await this.getProjectDb();
         const data = await db.collection<ProjectDocument>('projects').findOne({ _id: id } as Filter<ProjectDocument>);

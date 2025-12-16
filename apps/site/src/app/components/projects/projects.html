@@ -1,0 +1,24 @@
+<div class="projects-container">
+    <header>
+        <h1>Projects</h1>
+        <p>Select a project to view or edit details.</p>
+    </header>
+
+    <div class="projects-list">
+        <a *ngFor="let project of projects()" [routerLink]="['/project']" [queryParams]="{ id: project._id }"
+            class="project-card">
+            <div class="project-info">
+                <h2>{{ project.name || 'Untitled Project' }}</h2>
+            </div>
+            <div class="project-meta">
+                <span class="last-updated" *ngIf="project.last_updated">
+                    Last Updated: {{ project.last_updated | date:'medium' }}
+                </span>
+            </div>
+        </a>
+
+        <div *ngIf="projects().length === 0" class="no-projects">
+            No projects found.
+        </div>
+    </div>
+</div>

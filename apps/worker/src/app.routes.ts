@@ -10,6 +10,7 @@ app.use('*', cors());
 app.post('/api/workflow/start', HTTP.workflowStart);
 app.get('/api/workflow/status/:id', HTTP.workflowStatus);
 app.post('/api/refine', HTTP.refine);
+app.get('/api/projects', HTTP.getProjects);
 app.get('/api/projects/:projectId', HTTP.getProject);
 app.put('/api/projects/:projectId', HTTP.updateProject);
 

@@ -3,95 +3,121 @@
         <div>
             <h2 class="text-xl font-bold mb-2">AI Model Comparison</h2>
             @if (comparison()?.summary) {
-                <p class="text-gray-600 italic">{{ comparison()?.summary }}</p>
+            <p class="text-gray-600 italic">{{ comparison()?.summary }}</p>
             }
         </div>
-        <button (click)="refineComparison()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-semibold flex items-center gap-2">
+        <button (click)="refineComparison()"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm font-semibold flex items-center gap-2">
             <span class="material-icons text-base">auto_fix_high</span>
             Refine Comparison
         </button>
     </div>
 
     @if (isRerunning()) {
-        <div class="flex flex-col items-center justify-center p-8 bg-blue-50 border border-blue-100 rounded-lg mb-4">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-            <span class="text-blue-600 font-medium">Rerunning analysis...</span>
-        </div>
+    <div class="flex flex-col items-center justify-center p-8 bg-blue-50 border border-blue-100 rounded-lg mb-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+        <span class="text-blue-600 font-medium">Rerunning analysis...</span>
+    </div>
     }
 
     <table class="min-w-full border-collapse border border-gray-300">
         <thead>
             <tr class="bg-gray-100">
-                <th class="p-2 border border-gray-300 w-1/4">Consensus Task</th>
-                @for (model of modelNames(); track model) {
-                    <th class="p-2 border border-gray-300">
-                        <div class="flex justify-between items-center relative">
-                            <span class="font-bold">{{ model }}</span>
-                            
-                            <button (click)="toggleMenu(model); $event.stopPropagation()" class="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">
-                                <span class="material-icons">more_vert</span>
-                            </button>
+                <th class="p-2 border border-gray-300 w-1/4">
+                    <div class="flex justify-between items-center relative">
+                        <span class="font-bold">Consensus Task</span>
 
-                            @if (activeMenu() === model) {
-                                <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
-                                <div class="absolute right-0 top-full mt-1 bg-white shadow-xl rounded-lg border border-gray-100 z-20 w-48 py-1 flex flex-col overflow-hidden text-left">
-                                    <button (click)="promote.emit(model); closeMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2 w-full">
-                                        <span class="material-icons text-sm">arrow_upward</span>
-                                        Promote to Grid
-                                    </button>
-                                    <button (click)="rerunModel(model); closeMenu()" class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 w-full">
-                                        <span class="material-icons text-sm">refresh</span>
-                                        Rerun Analysis
-                                    </button>
-                                    <div class="h-px bg-gray-100 my-1"></div>
-                                    <button (click)="deleteModel(model); closeMenu()" class="text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 w-full">
-                                        <span class="material-icons text-sm">delete</span>
-                                        Remove Model
-                                    </button>
-                                </div>
-                            }
+                        <button (click)="toggleMenu('consensus'); $event.stopPropagation()"
+                            class="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">
+                            <span class="material-icons">more_vert</span>
+                        </button>
+
+                        @if (activeMenu() === 'consensus') {
+                        <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
+                        <div
+                            class="absolute right-0 top-full mt-1 bg-white shadow-xl rounded-lg border border-gray-100 z-20 w-48 py-1 flex flex-col overflow-hidden text-left">
+                            <button (click)="promote.emit('consensus'); closeMenu()"
+                                class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2 w-full">
+                                <span class="material-icons text-sm">arrow_upward</span>
+                                Promote to Grid
+                            </button>
                         </div>
-                    </th>
+                        }
+                    </div>
+                </th>
+                @for (model of modelNames(); track model) {
+                <th class="p-2 border border-gray-300">
+                    <div class="flex justify-between items-center relative">
+                        <span class="font-bold">{{ model }}</span>
+
+                        <button (click)="toggleMenu(model); $event.stopPropagation()"
+                            class="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100">
+                            <span class="material-icons">more_vert</span>
+                        </button>
+
+                        @if (activeMenu() === model) {
+                        <div class="fixed inset-0 z-10" (click)="closeMenu()"></div>
+                        <div
+                            class="absolute right-0 top-full mt-1 bg-white shadow-xl rounded-lg border border-gray-100 z-20 w-48 py-1 flex flex-col overflow-hidden text-left">
+                            <button (click)="promote.emit(model); closeMenu()"
+                                class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 flex items-center gap-2 w-full">
+                                <span class="material-icons text-sm">arrow_upward</span>
+                                Promote to Grid
+                            </button>
+                            <button (click)="rerunModel(model); closeMenu()"
+                                class="text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 w-full">
+                                <span class="material-icons text-sm">refresh</span>
+                                Rerun Analysis
+                            </button>
+                            <div class="h-px bg-gray-100 my-1"></div>
+                            <button (click)="deleteModel(model); closeMenu()"
+                                class="text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 w-full">
+                                <span class="material-icons text-sm">delete</span>
+                                Remove Model
+                            </button>
+                        </div>
+                        }
+                    </div>
+                </th>
                 }
                 <th class="p-2 border border-gray-300 w-24">Status</th>
             </tr>
         </thead>
         <tbody>
             @for (row of rows(); track row.wbsId) {
-                <tr [class.bg-red-50]="row.status === 'needs_review'" class="hover:bg-gray-50">
-                    <td class="p-2 border border-gray-300 align-top">
-                        <div class="font-bold flex items-center" [style.padding-left.rem]="row.level * 1.5">
-                            <span class="mr-2">{{ row.wbsId }}</span>
-                            <span>{{ row.name }}</span>
-                        </div>
-                        @if (row.discrepancies) {
-                            <div class="text-[10px] text-red-600 mt-1" [style.padding-left.rem]="(row.level * 1.5) + 2">
-                                {{ row.discrepancies }}
-                            </div>
-                        }
-                    </td>
-                    @for (model of modelNames(); track model) {
-                        <td class="p-2 border border-gray-300 align-top">
-                            @if (row.models[model]; as modelTask) {
-                                <div class="text-xs flex" [style.padding-left.rem]="row.level * 1.5">
-                                    <span class="font-mono text-gray-500 mr-2 whitespace-nowrap">{{ modelTask.wbsId }}</span>
-                                    <span>{{ modelTask.name }}</span>
-                                </div>
-                            } @else {
-                                <div class="text-xs text-gray-300 italic" [style.padding-left.rem]="row.level * 1.5">Missing</div>
-                            }
-                        </td>
+            <tr [class.bg-red-50]="row.status === 'needs_review'" class="hover:bg-gray-50">
+                <td class="p-2 border border-gray-300 align-top">
+                    <div class="font-bold flex items-center" [style.padding-left.rem]="row.level * 1.5">
+                        <span class="mr-2">{{ row.wbsId }}</span>
+                        <span>{{ row.name }}</span>
+                    </div>
+                    @if (row.discrepancies) {
+                    <div class="text-[10px] text-red-600 mt-1" [style.padding-left.rem]="(row.level * 1.5) + 2">
+                        {{ row.discrepancies }}
+                    </div>
                     }
-                    <td class="p-2 border border-gray-300 align-top text-center">
-                        <span [class.bg-green-100]="row.status === 'pass'"
-                              [class.text-green-800]="row.status === 'pass'"
-                              [class.bg-red-100]="row.status === 'needs_review'"
-                              [class.text-red-800]="row.status === 'needs_review'"
-                              class="px-2 py-1 rounded text-xs font-semibold uppercase">
-                            {{ row.status === 'pass' ? 'Match' : 'Diff' }}
-                        </span>
-                    </td>
-                </tr>
+                </td>
+                @for (model of modelNames(); track model) {
+                <td class="p-2 border border-gray-300 align-top">
+                    @if (row.models[model]; as modelTask) {
+                    <div class="text-xs flex" [style.padding-left.rem]="row.level * 1.5">
+                        <span class="font-mono text-gray-500 mr-2 whitespace-nowrap">{{ modelTask.wbsId }}</span>
+                        <span>{{ modelTask.name }}</span>
+                    </div>
+                    } @else {
+                    <div class="text-xs text-gray-300 italic" [style.padding-left.rem]="row.level * 1.5">Missing</div>
+                    }
+                </td>
+                }
+                <td class="p-2 border border-gray-300 align-top text-center">
+                    <span [class.bg-green-100]="row.status === 'pass'" [class.text-green-800]="row.status === 'pass'"
+                        [class.bg-red-100]="row.status === 'needs_review'"
+                        [class.text-red-800]="row.status === 'needs_review'"
+                        class="px-2 py-1 rounded text-xs font-semibold uppercase">
+                        {{ row.status === 'pass' ? 'Match' : 'Diff' }}
+                    </span>
+                </td>
+            </tr>
             }
         </tbody>
     </table>

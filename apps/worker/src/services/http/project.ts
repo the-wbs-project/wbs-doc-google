@@ -2,6 +2,16 @@ import { Context } from "hono";
 import { ProjectService } from "../project.service";
 import { AIService } from "../../ai";
 
+export async function getProjects(ctx: Context): Promise<Response> {
+    try {
+        const projectService = new ProjectService(ctx.env);
+        return ctx.json(await projectService.getAllProjects());
+    } catch (e) {
+        console.error("Get Projects Error", e);
+        return ctx.text(`API Error: ${e instanceof Error ? e.message : String(e)}`, 500);
+    }
+}
+
 export async function getProject(ctx: Context): Promise<Response> {
     const projectId = ctx.req.param('projectId');
     try {
@@ -84,14 +94,31 @@ export async function promoteModel(ctx: Context): Promise<Response> {
             return ctx.text('Project or model results not found', 404);
         }
 
-        const resultToPromote = project.model_results.find((r) => r.model === modelId);
+        let resultsToPromote: any[] = [];
 
-        if (!resultToPromote) {
-            return ctx.text('Model result not found', 404);
+        if (modelId === 'consensus') {
+            if (!project.comparison_result) {
+                return ctx.text('Consensus results not found', 404);
+            }
+            // Map comparison results to TreeTask structure
+            resultsToPromote = project.comparison_result.tasks.map(t => ({
+                id: t.wbsId, // Use wbsId as ID initially
+                wbsId: t.wbsId,
+                name: t.name,
+                description: '', // Comparison doesn't have description
+                children: []
+            }));
+        } else {
+            const resultToPromote = project.model_results.find((r) => r.model === modelId);
+
+            if (!resultToPromote) {
+                return ctx.text('Model result not found', 404);
+            }
+            resultsToPromote = resultToPromote.results;
         }
 
         // Transform the results into a tree where ID == WBS ID
-        const tasks = resultToPromote.results;
+        const tasks = resultsToPromote;
         const flatTasks: any[] = [];
 
         // 1. Flatten the existing tree (just in case it's nested)

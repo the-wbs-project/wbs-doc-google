@@ -21,6 +21,10 @@ export class ApiService {
     return this.http.get<ProjectDocument>(`/api/projects/${projectId}`);
   }
 
+  getProjects(): Observable<Partial<ProjectDocument>[]> {
+    return this.http.get<Partial<ProjectDocument>[]>(`/api/projects`);
+  }
+
   refine(modelId: string, instructions: string, tasks: TreeTask[]): Observable<TreeTask[]> {
     return this.http.post<TreeTask[]>(`/api/refine`, { model: modelId, instructions, tasks });
   }
