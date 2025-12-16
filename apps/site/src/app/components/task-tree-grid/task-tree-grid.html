@@ -1,44 +1,84 @@
-<div class="tree-grid-container h-full flex flex-col">
+<div class="tree-grid-container flex flex-col">
     <div class="toolbar mb-2 flex justify-between items-center">
         <h3 class="text-lg font-semibold">Task Editor</h3>
         <div class="flex gap-2">
-            <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 flex items-center gap-2 border border-gray-300" (click)="saveChanges()">
+            <button
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 flex items-center gap-2 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                (click)="undo()" [disabled]="history().length === 0">
+                <span class="material-icons text-sm">undo</span>
+                <span>Undo AI</span>
+            </button>
+            <button
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 flex items-center gap-2 border border-gray-300"
+                (click)="saveChanges()">
                 <span class="material-icons text-sm">save</span>
                 <span>Save</span>
             </button>
-            <button class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2" (click)="openRefineDialog()">
+            <button class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 flex items-center gap-2"
+                (click)="openRefineDialog()">
                 <span>✨ Refine with AI</span>
             </button>
         </div>
     </div>
 
     <!-- Note: Syncfusion TreeGrid data source binding [dataSource]="gridDataSource()" -->
-    <ejs-treegrid #treegrid [dataSource]="gridDataSource()" [treeColumnIndex]="1" idMapping="id" parentIdMapping="parentId" 
-                  [editSettings]="editSettings" [toolbar]="toolbar"
-                  id="taskTreeGrid" height="100%">
-        <e-columns>
-            <e-column field="wbsId" headerText="WBS ID" width="100" textAlign="Left"></e-column>
-            <e-column field="name" headerText="Task Name" width="250"></e-column>
-            
-            @for (col of dynamicColumns(); track col) {
-                <e-column [field]="'metadata.' + col" [headerText]="col" width="150" textAlign="Left"></e-column>
-            }
-        </e-columns>
-    </ejs-treegrid>
+    <div class="flex-1 min-h-0 overflow-hidden relative">
+        <ejs-treegrid #treegrid [dataSource]="gridDataSource()" [treeColumnIndex]="1" idMapping="id"
+            parentIdMapping="parentId" [editSettings]="editSettings" [toolbar]="toolbar"
+            (actionBegin)="onActionBegin($event)" (actionComplete)="actionComplete($event)" (rowDrop)="rowDrop($event)"
+            [allowRowDragAndDrop]="true" id="taskTreeGrid" height="100%">
 
-    <ejs-dialog id="refineDialog" [visible]="showRefineDialog()" [header]="'Refine with AI'" [showCloseIcon]="true" width="400px" (close)="closeRefineDialog()">
+            <e-columns>
+                <e-column field="id" headerText="ID" [isPrimaryKey]="true" [visible]="false"></e-column>
+                <e-column field="wbsId" headerText="WBS ID" width="100" textAlign="Left"
+                    [allowEditing]="false"></e-column>
+                <e-column field="name" headerText="Task Name" width="250"></e-column>
+
+                @for (col of dynamicColumns(); track col) {
+                <e-column [field]="'metadata.' + col" [headerText]="col" width="150" textAlign="Left"></e-column>
+                }
+            </e-columns>
+        </ejs-treegrid>
+    </div>
+
+    <ejs-dialog id="refineDialog" [visible]="showRefineDialog()" [header]="'Refine with AI'" [showCloseIcon]="true"
+        width="400px" (close)="closeRefineDialog()">
         <ng-template #content>
             <div class="p-4">
-                <p class="mb-2 text-sm text-gray-600">Enter instructions to modify the WBS (e.g., "Remove emojis", "Reorder by date").</p>
-                <textarea [ngModel]="refineInstructions()" (ngModelChange)="refineInstructions.set($event)" class="w-full border rounded p-2 h-32" placeholder="Instructions..."></textarea>
+                <p class="mb-2 text-sm text-gray-600">Enter instructions to modify the WBS (e.g., "Remove emojis",
+                    "Reorder by date").</p>
+                <textarea [ngModel]="refineInstructions()" (ngModelChange)="refineInstructions.set($event)"
+                    class="w-full border rounded p-2 h-32" placeholder="Instructions..."></textarea>
             </div>
         </ng-template>
         <ng-template #footerTemplate>
             <div class="p-2 flex justify-end gap-2">
                 <button (click)="closeRefineDialog()" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-                <button (click)="submitRefinement()" [disabled]="isRefining()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50">
+                <button (click)="submitRefinement()" [disabled]="isRefining()"
+                    class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50">
                     {{ isRefining() ? 'Refining...' : 'Submit' }}
                 </button>
+            </div>
+        </ng-template>
+    </ejs-dialog>
+
+    <ejs-dialog id="deleteDialog" [visible]="showDeleteDialog()" [header]="'Delete Task'" [showCloseIcon]="true"
+        width="450px" (close)="closeDeleteDialog()">
+        <ng-template #content>
+            <div class="p-4">
+                <p class="text-sm text-gray-700">
+                    You are deleting <strong>{{ taskToDelete()?.name }}</strong>. Do you want to delete its children as
+                    well?
+                </p>
+            </div>
+        </ng-template>
+        <ng-template #footerTemplate>
+            <div class="p-2 flex justify-end gap-2">
+                <button (click)="closeDeleteDialog()" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                <button (click)="deleteTaskKeepChildren()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Keep Children</button>
+                <button (click)="deleteTaskWithChildren()"
+                    class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Delete Children</button>
             </div>
         </ng-template>
     </ejs-dialog>

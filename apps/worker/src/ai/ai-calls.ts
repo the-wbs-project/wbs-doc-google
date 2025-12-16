@@ -1,5 +1,5 @@
 import { ComparisonResult, ModelResults, TreeTask } from "@wbs/domains";
-import { GEMINI_COMPARISON_SCHEMA, GEMINI_TASK_SCHEMA } from "./ai-validation";
+import { GEMINI_COMPARISON_SCHEMA, GEMINI_REFINED_TASK_SCHEMA, GEMINI_TASK_SCHEMA } from "./ai-validation";
 import { AIService } from "./index";
 import { LangfuseService } from "./langfuse-service";
 
@@ -53,19 +53,18 @@ export class AiCallService {
         return await this.ai.gemini.standardize<ComparisonResult>(textResults, GEMINI_COMPARISON_SCHEMA);
     }
 
-    async refineTasks(data: ModelResults<TreeTask[]>, instructions: string): Promise<ModelResults<TreeTask[]>> {
+    async refineTasks(model: string, data: TreeTask[], instructions: string): Promise<TreeTask[]> {
         const systemMessage = "You are a project management expert. Refine the tasks based on the instructions.";
         const userMessage = `Refine the following tasks based on the instructions.`;
 
-        const aiService = this.ai.getService(data.model);
+        const aiService = this.ai.getService(model);
 
         const text = await aiService.generateContent({
-            prompt: [{ role: 'system', content: systemMessage }, { role: 'user', content: userMessage }, { role: 'user', content: instructions }, { role: 'user', content: JSON.stringify(data.results) }],
+            prompt: [{ role: 'system', content: systemMessage }, { role: 'user', content: userMessage }, { role: 'user', content: instructions }, { role: 'user', content: JSON.stringify(data) }],
             promptName: 'refine-tasks',
-            //maxTokens: this.getMaxTokens(promptObj.config as any)
         });
 
-        return { model: data.model, results: [...data.results] };
+        return await this.ai.gemini.standardize<TreeTask[]>(text, GEMINI_REFINED_TASK_SCHEMA);
     }
 
     private getMaxTokens(config: Record<string, unknown>): number | undefined {

@@ -1,24 +1,20 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal, HostListener } from '@angular/core';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ProjectDocument } from '@wbs/domains';
-// @ts-ignore
-import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { ApiService } from '../../services/api';
 import { MessageService } from '../../services/message.service';
 import { TaskComparisonComponent } from '../task-comparison/task-comparison';
 import { TaskTreeGridComponent } from '../task-tree-grid/task-tree-grid';
+import { CanComponentDeactivate } from '../../guards/unsaved-changes.guard';
 
 @Component({
   selector: 'app-project',
-  imports: [CommonModule, RouterModule, TaskComparisonComponent, TaskTreeGridComponent],
+  imports: [RouterModule, TaskComparisonComponent, TaskTreeGridComponent],
   templateUrl: './project.html',
   styleUrl: './project.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ProjectComponent implements OnInit { // trigger build
-  @ViewChild('tableDiv') tableDiv!: ElementRef;
-
+export class ProjectComponent implements OnInit, CanComponentDeactivate {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(ApiService);
@@ -28,10 +24,10 @@ export class ProjectComponent implements OnInit { // trigger build
 
   status = signal('Loading project data...');
   statusClass = signal('loading');
-  tabulator: any;
 
   projectData = signal<ProjectDocument | undefined>(undefined);
   activeTab = signal<'editor' | 'comparison' | 'legacy'>('comparison');
+  hasUnsavedChanges = signal(false);
 
   constructor() {
     // Effect to handle basic consistency if needed, but logic is mostly event driven.
@@ -81,11 +77,6 @@ export class ProjectComponent implements OnInit { // trigger build
               this.switchTab('editor');
             }
           }
-
-          // Fallback or existing logic for legacy tab
-          if (this.activeTab() === 'legacy' && data.tree) {
-            setTimeout(() => this.renderTable(data.tree!), 0);
-          }
         } else {
           this.status.set('Project loaded, but no tree data found.');
           this.statusClass.set('error');
@@ -108,21 +99,31 @@ export class ProjectComponent implements OnInit { // trigger build
       queryParamsHandling: 'merge', // Merge with existing params (like id)
       replaceUrl: true // Don't create new history entry for every tab switch? Maybe prefer push? User requirement implies bookmarking, usually push is better for navigation habits, but for tabs often replace. Let's use replaceUrl: false (default) to allow back button.
     });
-
-    if (tab === 'legacy' && this.projectData()?.tree) {
-      setTimeout(() => {
-        if (this.tableDiv) this.renderTable(this.projectData()!.tree!);
-      }, 0);
-    }
   }
 
   // Handle updates from Tree Grid
   onTasksUpdate(tasks: any[]) {
     const current = this.projectData();
     if (current) {
-      // Create shallow copy to trigger signal update if necessary, or just update nested?
-      // Signals should be immutable best practice.
       this.projectData.set({ ...current, tree: tasks });
+    }
+  }
+
+  onHasUnsavedChanges(hasChanges: boolean) {
+    this.hasUnsavedChanges.set(hasChanges);
+  }
+
+  canDeactivate(): Promise<boolean> | boolean {
+    if (this.hasUnsavedChanges()) {
+      return this.messageService.confirm('You have unsaved changes. Are you sure you want to leave?');
+    }
+    return true;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  unloadNotification($event: any) {
+    if (this.hasUnsavedChanges()) {
+      $event.returnValue = true;
     }
   }
 
@@ -135,6 +136,7 @@ export class ProjectComponent implements OnInit { // trigger build
     this.api.updateProject(id, { tree: tasks }).subscribe({
       next: () => {
         this.messageService.alert('Project saved successfully!', 'Success', 'success');
+        this.hasUnsavedChanges.set(false); // Ensure local state is updated too
       },
       error: (err) => {
         console.error(err);
@@ -161,32 +163,6 @@ export class ProjectComponent implements OnInit { // trigger build
         this.switchTab('editor'); // Switch to editor view
       },
       error: (err) => this.messageService.alert(`Failed to promote model: ${err.message}`, 'Error', 'error')
-    });
-  }
-
-  renderTable(treeData: any[]) {
-    if (!this.tableDiv) return;
-
-    const rename = (row: any) => {
-      row.title = `${row.wbsId || ''} - ${row.name}`;
-      if (row.children) {
-        row.children.forEach(rename);
-      }
-    };
-    const dataClone = JSON.parse(JSON.stringify(treeData));
-    dataClone.forEach(rename);
-
-    this.tabulator = new Tabulator(this.tableDiv.nativeElement, {
-      data: dataClone,
-      dataTree: true,
-      dataTreeStartExpanded: true,
-      dataTreeChildField: "children",
-      layout: "fitColumns",
-      placeholder: "No Data Available",
-      columns: [
-        { title: "Task Name", field: "title", widthGrow: 3 },
-        { title: "ID", field: "id", width: 100, visible: false },
-      ],
     });
   }
 }

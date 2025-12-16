@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { ProjectDocument, WorkflowStatusResponse } from '@wbs/domains';
+import { ProjectDocument, TreeTask, WorkflowStatusResponse } from '@wbs/domains';
 import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
@@ -21,8 +21,8 @@ export class ApiService {
     return this.http.get<ProjectDocument>(`/api/projects/${projectId}`);
   }
 
-  refineProject(projectId: string, modelId: string, instructions: string): Observable<{ workflowId: string }> {
-    return this.http.post<{ workflowId: string }>(`/api/projects/${projectId}/models/${encodeURIComponent(modelId)}/refine`, { instructions });
+  refine(modelId: string, instructions: string, tasks: TreeTask[]): Observable<TreeTask[]> {
+    return this.http.post<TreeTask[]>(`/api/refine`, { model: modelId, instructions, tasks });
   }
 
   rerunModel(projectId: string, modelId: string): Observable<{ workflowId: string }> {

@@ -114,3 +114,27 @@ export const GEMINI_COMPARISON_SCHEMA = {
     },
     required: ["tasks", "summary"]
 };
+
+export const GEMINI_REFINED_TASK_SCHEMA = {
+    type: "ARRAY",
+    items: {
+        type: "OBJECT",
+        properties: {
+            wbsId: { type: "STRING" },
+            parentId: { type: "STRING" },
+            name: { type: "STRING" },
+            metadata: {
+                type: "ARRAY",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        key: { type: "STRING" },
+                        value: { type: "STRING" }
+                    },
+                    required: ["key", "value"]
+                }
+            },
+        },
+        required: ["wbsId", "name", "metadata"]
+    }
+};
